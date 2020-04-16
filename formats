@@ -1,0 +1,5 @@
+Destinations:
+Id,Name,Type,Value1,Value2,Value3,Value4,Stations1,Stations2,Stations3,Stations4,Reserved
+
+Routes:
+Place1,Place2,Color,Amount,Cost
