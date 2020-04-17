@@ -6,8 +6,6 @@ def generate_map(game):
     destinations = game.destinations
     routes = game.routes
 
-    destinations = []
-
     destination_colors = {"Export":"#ffdddd", "City":"#ddddff", "Town":"#000000"}
     destination_text_colors = {"Export":"#000000", "City":"#000000", "Town":"#000000"}
     destination_text_size = {"Export":"8", "City":"8", "Town":"6"}
@@ -115,5 +113,4 @@ def generate_map(game):
                 color=route_colors[route.color],
                 minlen="5",
                 length=str(length_weight))
-    #return graph.pipe(format="png")
-    return graph.source
+    return graph.pipe(format="svg")

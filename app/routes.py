@@ -7,6 +7,5 @@ from app.game.generate import generate_map
 @app.route('/map')
 def map_image():
     game = Game()
-    #image = io.BytesIO(generate_map(game))
-    #return send_file(image, mimetype="image/png")
-    return generate_map(game)
+    image = io.BytesIO(generate_map(game))
+    return send_file(image, mimetype="image/svg+xml")

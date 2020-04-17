@@ -1,12 +1,16 @@
 # Import flask and template operators
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
 
 # Define the WSGI application object
-app = Flask(__name__)
+app = Flask(__name__, static_folder="assets/")
 
 @app.route("/")
 def root():
     return "fart"
+
+@app.route('/app/assets/<path:path>')
+def send_js(path):
+    return send_from_directory('assets', path)
 
 @app.errorhandler(404)
 def not_found(error):
