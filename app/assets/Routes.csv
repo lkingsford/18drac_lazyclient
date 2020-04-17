@@ -79,7 +79,6 @@ morefrite,dothrow,yellow,1,
 morlock,gaslight,blue,1,
 morlock,blackford,blue,1,
 morlock,montelboss,yellow,1,20
-overlook,dracuul,PHASE,,
 overlook,blackforest,yellow,1,
 overlook,hollick,blue,1,
 port_tailefell,innside,blue,2,40
@@ -90,7 +89,6 @@ sadie,balath,yellow,0,
 sadie,gloufit,yellow,1,
 sadie,dead_mans_bay,red,1,60
 sadie,blackforest,green,1,10
-seedess,dracuul,PHASE,,
 seekers,seekers_east,blue,1,20
 seekers_east,harrierbend,blue,1,
 serring,gerringsford,yellow,1,
@@ -109,3 +107,7 @@ ubervale,balath,yellow,1,
 ubervale,havelock,yellow,1,
 yrer,yrerday,yellow,1,
 yrerday,highsale,yellow,1,
+castle,overlook,PHASE,0,
+castle,glissther,PHASE,0,
+castle,dracuul,PHASE,0,
+castle,seedess,PHASE,0,
