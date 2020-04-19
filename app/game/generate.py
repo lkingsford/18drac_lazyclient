@@ -1,5 +1,6 @@
 import csv
 import graphviz
+import svgwrite
 
 def generate_map(game):
     # Lazy, 'cause I couldn't be bothered changing code
@@ -56,7 +57,7 @@ def generate_map(game):
                     # TODO: Fix this. It's wrong. It should be amount upgrades
                     # in city, not phase of the station
                     if station < destination.stations[destination.current_upgrades]:
-                        label += f"<TD><IMG SRC='app/assets/CitySpace.png'/></TD>"
+                        label += f"<TD><IMG SRC='app/assets/CitySpace.svg'/></TD>"
                 label += "</TR></TABLE></TD></TR>"
             label += "<TR><TD><TABLE>"
             label += get_value_row(destination.upgrades, destination.values, destination.stations)
@@ -114,3 +115,8 @@ def generate_map(game):
                 minlen="5",
                 length=str(length_weight))
     return graph.pipe(format="svg")
+
+def generate_market(game):
+    display = svgwrite.Drawing(size=("20,20"))
+    return display.tostring()
+    pass

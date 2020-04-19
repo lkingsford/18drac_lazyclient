@@ -11,18 +11,43 @@ class Game:
         def __init__(self):
             pass
         current_upgrades = 0
+
     class Route:
         def __init__(self):
             pass
-    
+
+    class Market:
+        class StockSpot:
+            def __init__(self, price, color):
+                self.price = price
+                self.color = color
+            
+        def __init__(self, reader):
+            self.table = []
+            for row in reader:
+                new_row = []
+                for cell in row:
+                    if cell == "":
+                        new_row.append(None)
+                        continue
+                    special = cell[0] in ['y', 'b', 'i']
+                    price = int(cell[1:]) if special else int(cell) 
+                    color = cell[0] if special else 'w'
+                    spot = Game.Market.StockSpot(price, color)
+                    new_row.append(spot)
+                self.table.append(new_row)
+
     def __init__(self):
+        self.phase = 0
         with open("app/assets/Destinations.csv") as dest_file, open("app/assets/Routes.csv") as route_file:
             destination_reader = csv.reader(dest_file)
             route_reader = csv.reader(route_file)
             self.destinations = []
             self.routes = []
-            self.phase = 0
             self.load_map(destination_reader, route_reader)
+        with open("app/assets/Market.csv") as market_file:
+            reader = csv.reader(market_file)
+            self.market = Game.Market(reader)
     
     def load_map(self, destinations, routes):
         for row in destinations:
