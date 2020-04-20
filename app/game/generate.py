@@ -117,6 +117,22 @@ def generate_map(game):
     return graph.pipe(format="svg")
 
 def generate_market(game):
-    display = svgwrite.Drawing(size=("20,20"))
+    display = svgwrite.Drawing()
+    market = game.market
+    scale = 50
+    for row in enumerate(market.table):
+        for cell in enumerate(row[1]):
+            if cell[1]:
+                color = {"y":"#cccc00",
+                         "b":"#deaa87",
+                         "w":"#ffffff",
+                         "i":"#ffcccc"}[cell[1].color]
+                display.add(display.rect((cell[0] * scale, row[0] * scale),
+                            (scale, scale),
+                            stroke="black", fill=color))
+                display.add(display.text(cell[1].price,
+                                         insert=(cell[0] * scale + scale / 5,
+                                                 row[0] * scale + scale / 2),
+                                         fill="black"))
+
     return display.tostring()
-    pass
