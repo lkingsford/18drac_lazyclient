@@ -1,0 +1,14 @@
+<!doctype html>
+<title>{% block title %}{% endblock %}</title>
+<nav>
+  <h1>18Dracula Games List</h1>
+</nav>
+<section class="content">
+  <ul>
+  {% for game in gamelist %}
+    <li>
+      {{ game }}
+    </li>
+  {% endfor %}
+  </ul>
+</section>

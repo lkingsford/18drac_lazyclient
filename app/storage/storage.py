@@ -4,3 +4,6 @@ class Storage:
 
     def load_game_state(self, game_id):
         raise NotImplementedError()
+
+    def get_games(self):
+        raise NotImplementedError()

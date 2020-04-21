@@ -9,7 +9,7 @@ db = Sqlite("mestorage.db")
 
 @app.route("/")
 def root():
-    return "fart"
+    return render_template('games.html', gamelist=db.get_games())
 
 @app.route('/app/assets/<path:path>')
 def send_js(path):
