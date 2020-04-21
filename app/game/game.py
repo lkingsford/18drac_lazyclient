@@ -21,7 +21,7 @@ class Game:
             def __init__(self, price, color):
                 self.price = price
                 self.color = color
-            
+
         def __init__(self, reader):
             self.table = []
             for row in reader:
@@ -48,7 +48,7 @@ class Game:
         with open("app/assets/Market.csv") as market_file:
             reader = csv.reader(market_file)
             self.market = Game.Market(reader)
-    
+
     def load_map(self, destinations, routes):
         for row in destinations:
             destination = Game.Destination()

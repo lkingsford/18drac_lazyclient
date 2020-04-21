@@ -1,8 +1,11 @@
 # Import flask and template operators
 from flask import Flask, render_template, send_from_directory
+from app.storage.sqlite import Sqlite
 
 # Define the WSGI application object
 app = Flask(__name__, static_folder="assets/")
+
+db = Sqlite("mestorage.db")
 
 @app.route("/")
 def root():
