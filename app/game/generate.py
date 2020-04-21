@@ -1,4 +1,5 @@
 import csv
+from flask import url_for
 import graphviz
 import svgwrite
 
@@ -33,7 +34,7 @@ def generate_map(game):
             result += '</TD>'
         result += "</TR>"
         return result
-
+    city_img = 'app/assets/CitySpace.svg'
     for destination in destinations:
         color = destination_colors[destination.dest_type]
         if destination.dest_type == "Town":
@@ -57,7 +58,7 @@ def generate_map(game):
                     # TODO: Fix this. It's wrong. It should be amount upgrades
                     # in city, not phase of the station
                     if station < destination.stations[destination.current_upgrades]:
-                        label += f"<TD><IMG SRC='app/assets/CitySpace.svg'/></TD>"
+                        label += f"<TD><IMG SRC='{city_img}'/></TD>"
                 label += "</TR></TABLE></TD></TR>"
             label += "<TR><TD><TABLE>"
             label += get_value_row(destination.upgrades, destination.values, destination.stations)
@@ -114,10 +115,13 @@ def generate_map(game):
                 color=route_colors[route.color],
                 minlen="5",
                 length=str(length_weight))
-    return graph.pipe(format="svg")
+    svg_file = graph.pipe(format="svg")
+    # Hacky, but we want the url to be correct for the image
+    svg_file = svg_file.decode().replace(city_img, url_for('static_assets', path="CitySpace.svg")).encode("utf-8")
+    return svg_file
 
 def generate_market(game):
-    display = svgwrite.Drawing()
+    display = svgwrite.Drawing(size=("900px","500px"))
     market = game.market
     scale = 50
     for row in enumerate(market.table):

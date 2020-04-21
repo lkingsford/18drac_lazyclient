@@ -13,7 +13,7 @@ def root():
     return render_template('games.html', gamelist=db.get_games())
 
 @app.route('/app/assets/<path:path>')
-def send_js(path):
+def static_assets(path):
     return send_from_directory('assets', path)
 
 @app.errorhandler(404)

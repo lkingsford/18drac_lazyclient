@@ -1,10 +1,10 @@
 <!doctype html>
 <title>{% block title %}{% endblock %}</title>
 <nav>
-  <h1>18Dracula Games List</h1>
+  <h1>18Dracula Game {{ game_id }}</h1>
 </nav>
 <section class="content">
-<img src={{url_for("map_image", game_id=game_id)}}/>
+<object type="image/svg+xml" data={{url_for("map_image", game_id=game_id)}}></object>
 <br/>
-<img src={{url_for("market", game_id=game_id)}}/>
+<object type="image/svg+xml" data={{url_for("market", game_id=game_id)}}></object>
 </section>
