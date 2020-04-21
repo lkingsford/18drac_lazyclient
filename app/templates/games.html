@@ -4,10 +4,11 @@
   <h1>18Dracula Games List</h1>
 </nav>
 <section class="content">
+  <a href={{ url_for('create_form') }}>Create new game</a>
   <ul>
   {% for game in gamelist %}
     <li>
-      {{ game }}
+      <a href={{ url_for('view', game_id=game) }}>{{ game }}</a>
     </li>
   {% endfor %}
   </ul>

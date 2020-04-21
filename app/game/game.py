@@ -1,4 +1,5 @@
 import csv
+import json
 
 def int_or_none(s):
     if s == "":
@@ -37,8 +38,7 @@ class Game:
                     new_row.append(spot)
                 self.table.append(new_row)
 
-    def __init__(self):
-        self.phase = 0
+    def __init__(self, load_state = None):
         with open("app/assets/Destinations.csv") as dest_file, open("app/assets/Routes.csv") as route_file:
             destination_reader = csv.reader(dest_file)
             route_reader = csv.reader(route_file)
@@ -48,6 +48,15 @@ class Game:
         with open("app/assets/Market.csv") as market_file:
             reader = csv.reader(market_file)
             self.market = Game.Market(reader)
+        
+        if load_state:
+            self.load_state(load_state)
+        else:
+            self.start_game()
+        
+
+    def start_game(self):
+        self.phase = 0
 
     def load_map(self, destinations, routes):
         for row in destinations:
@@ -68,3 +77,13 @@ class Game:
             route.amount = int_or_none(row[3]) or 0
             route.cost = int_or_none(row[4])
             self.routes.append(route)
+    
+    def get_state(self):
+        state = {
+            "phase": self.phase,
+        }
+        return json.dumps(state)
+
+    def load_state(self, state):
+        state = json.loads(state)
+        self.phase = state["phase"]

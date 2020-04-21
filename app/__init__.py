@@ -4,6 +4,7 @@ from app.storage.sqlite import Sqlite
 
 # Define the WSGI application object
 app = Flask(__name__, static_folder="assets/")
+app.url_map.strict_slashes = False
 
 db = Sqlite("mestorage.db")
 
