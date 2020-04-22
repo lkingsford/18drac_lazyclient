@@ -33,4 +33,4 @@ def create_form():
 def create_game():
     game = Game()
     game_id = db.save_game_state(None, game.get_state(), datetime.datetime.now())
-    return str(game_id)
+    return redirect(url_for("view", game_id=game_id))
