@@ -22,7 +22,6 @@ def market(game_id):
 @app.route('/game/<game_id>/view')
 def view(game_id):
     state = db.load_game_state(game_id)
-    game = Game(state)
     return render_template("game_view.html", game_id=game_id)
 
 @app.route('/create')

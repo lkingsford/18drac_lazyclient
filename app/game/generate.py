@@ -39,7 +39,7 @@ def generate_map(game):
         color = destination_colors[destination.dest_type]
         if destination.dest_type == "Town":
             graph.node(destination.id,
-                    f"<<TABLE>{get_value_row(destination.upgrades, destination.values, destination.stations)}</TABLE>>",
+                    f"<<TABLE>{get_value_row(destination.upgrades, destination.values, destination.station_count)}</TABLE>>",
                     xlabel=destination.display_name,
                     color=destination_colors[destination.dest_type],
                     style="filled",
@@ -47,7 +47,7 @@ def generate_map(game):
                     fontcolor=destination_text_colors[destination.dest_type],
                     fontsize = destination_text_size[destination.dest_type])
         else:
-            max_stations = max([i or 0 for i in destination.stations])
+            max_stations = max([i or 0 for i in destination.station_count])
             label = "<<TABLE>"
             label += "<TR>"
             label += f'<TD>{destination.display_name}</TD>'
@@ -57,11 +57,11 @@ def generate_map(game):
                 for station in range(max_stations):
                     # TODO: Fix this. It's wrong. It should be amount upgrades
                     # in city, not phase of the station
-                    if station < destination.stations[destination.current_upgrades]:
+                    if station < destination.station_count[destination.current_upgrades]:
                         label += f"<TD><IMG SRC='{city_img}'/></TD>"
                 label += "</TR></TABLE></TD></TR>"
             label += "<TR><TD><TABLE>"
-            label += get_value_row(destination.upgrades, destination.values, destination.stations)
+            label += get_value_row(destination.upgrades, destination.values, destination.station_count)
             label += "</TABLE></TD></TR></TABLE>>"
             graph.node(destination.id,
                     label,
