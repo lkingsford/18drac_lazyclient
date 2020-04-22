@@ -48,12 +48,10 @@ class Game:
         with open("app/assets/Market.csv") as market_file:
             reader = csv.reader(market_file)
             self.market = Game.Market(reader)
-        
         if load_state:
             self.load_state(load_state)
         else:
             self.start_game()
-        
 
     def start_game(self):
         self.phase = 0

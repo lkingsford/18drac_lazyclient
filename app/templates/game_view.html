@@ -1,10 +1,19 @@
 <!doctype html>
 <title>{% block title %}{% endblock %}</title>
+<link href={{url_for("static", filename="game_view.css")}} rel="stylesheet" type="text/css"/>
 <nav>
   <h1>18Dracula Game {{ game_id }}</h1>
 </nav>
 <section class="content">
+<div class="tabs">
+<button class="tablinks" onclick="openTab(event, 'map_tab');">Map</button>
+<button class="tablinks" onclick="openTab(event, 'market_tab');")>Market</button>
+</div>
+<div id="map_tab" class="tabcontent">
 <object type="image/svg+xml" data={{url_for("map_image", game_id=game_id)}}></object>
-<br/>
+</div>
+<div id="market_tab" class="tabcontent">
 <object type="image/svg+xml" data={{url_for("market", game_id=game_id)}}></object>
+</div>
 </section>
+<script src={{url_for("static", filename="game_view.js")}}></script>
