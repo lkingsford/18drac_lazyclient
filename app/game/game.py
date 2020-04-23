@@ -31,8 +31,13 @@ class Game:
             pass
 
     class Company:
-        def __init__(self, id, display_name):
+        def __init__(self, id, display_name, color):
             self.started = False
+            self.cash = 0
+            self.stations_remaining = 4
+            self.display_name = display_name
+            self.id = id
+            self.color = color
 
     class Market:
         class StockSpot:
@@ -104,7 +109,7 @@ class Game:
             home.stations.append(company[0])
 
     def load_companies(self, companies):
-        self.companies = {i[0]: Game.Company(i[0], i[1]) for i in companies}
+        self.companies = {i[0]: Game.Company(i[0], i[1], i[4]) for i in companies}
     
     def get_state(self):
         state = {

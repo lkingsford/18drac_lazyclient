@@ -22,7 +22,11 @@ def market(game_id):
 @app.route('/game/<game_id>/view')
 def view(game_id):
     state = db.load_game_state(game_id)
-    return render_template("game_view.html", game_id=game_id)
+    game = Game(state)
+    # Add things to help game separate logic
+    for i in game.companies:
+        game.companies[i].token_img = url_for('static_assets', path=f'tokens/{i}.svg')
+    return render_template("game_view.html", game_id=game_id, game=game)
 
 @app.route('/create')
 def create_form():

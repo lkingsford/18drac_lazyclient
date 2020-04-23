@@ -29,3 +29,44 @@
     border-top: none;
     display: none;
   }
+
+
+  /*
+  * {
+    box-sizing: border-box;
+  }
+  */
+
+  /* Float four company_columns side by side */
+  .company_column {
+    float: left;
+    width: 25%;
+    padding: 0 10px 30px 30px;
+  }
+  
+  /* Remove extra left and right margins, due to padding in company_columns */
+  .company_row {margin: 0 -5px;}
+  
+  /* Clear floats after the company_columns */
+  .company_row:after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+  
+  /* Style the counter company_cards */
+  .company_card {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2); /* this adds the "company_card" effect */
+    padding: 16px 16px 30px 30px;
+    text-align: center;
+    background-color: #f1f1f1;
+  }
+  
+  /* Responsive company_columns - one company_column layout (vertical) on small screens */
+  @media screen and (max-width: 600px) {
+    .company_column {
+      width: 100%;
+      display: block;
+      margin-bottom: 20px;
+    }
+  }

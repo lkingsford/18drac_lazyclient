@@ -8,12 +8,30 @@
 <div class="tabs">
 <button class="tablinks" onclick="openTab(event, 'map_tab');">Map</button>
 <button class="tablinks" onclick="openTab(event, 'market_tab');")>Market</button>
+<button class="tablinks" onclick="openTab(event, 'company_tab');")>Companies</button>
 </div>
 <div id="map_tab" class="tabcontent">
 <object type="image/svg+xml" data={{url_for("map_image", game_id=game_id)}}></object>
 </div>
 <div id="market_tab" class="tabcontent">
 <object type="image/svg+xml" data={{url_for("market", game_id=game_id)}}></object>
+</div>
+<div id="company_tab" class="tabcontent">
+    <div class="company_row">
+      {% for c in game.companies %}
+      <div class="company_column"><div class="company_card">
+        <table>
+          <tr>
+            <td><img src= {{ game.companies[c].token_img }} width="32px" height = "32px"/></td>
+            <td>{{ game.companies[c].display_name }}</td>
+          </tr>
+          <tr>
+            <td colspan=2 style="background-color: {{game.companies[c].color}}" ;></td>
+          </tr>
+        </table>
+      </div></div>
+      {% endfor %}
+    </div>
 </div>
 </section>
 <script src={{url_for("static", filename="game_view.js")}}></script>

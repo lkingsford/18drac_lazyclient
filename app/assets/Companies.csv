@@ -1,10 +1,10 @@
-bh,Bedlam's Home for the Bewildered,trosing,public
-bt,Blundell's Transfusions,harrierbend,private
-ett,Engel's Travelling Theatre,sadie,public
-gs,The Graddock Stagecoach,graddock,public
-gw,Gordon & Wilbury,dracuul,public
-ibs,Institute of Barber and Surgeons,yrer,public
-ka,Kerrigan's Abbatoir,cano
-ll,Lupin's Lipids,ubervale,private
-ss,Stakes 'n Stuff,highsale,public
-uu,Underwood's Undertakers,gonthror,public
+bh,Bedlam's Home for the Bewildered,trosing,public,#ffccaa
+ett,Engel's Travelling Theatre,sadie,public,#e5ff80
+gs,The Graddock Stagecoach,graddock,public,#dbe3de
+gw,Gordon & Wilbury,dracuul,public,#aaffee
+ibs,Institute of Barber and Surgeons,yrer,public,#80b3ff
+ka,Kerrigan's Abbatoir,cano,public,#ff8080
+ss,Stakes 'n Stuff,highsale,public,#483737
+uu,Underwood's Undertakers,gonthror,public,#ccaaff
+ll,Lupin's Lipids,ubervale,private,#800080
+bt,Blundell's Transfusions,harrierbend,private,#ff2a2a

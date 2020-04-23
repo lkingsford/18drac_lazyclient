@@ -151,7 +151,7 @@ def generate_map(game):
     return svg_file_text.encode('utf-8')
 
 def generate_market(game):
-    display = svgwrite.Drawing(size=("900px","500px"))
+    display = svgwrite.Drawing(size=("900px","550px"))
     market = game.market
     scale = 50
     for row in enumerate(market.table):
