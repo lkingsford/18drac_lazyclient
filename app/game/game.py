@@ -299,6 +299,11 @@ class Game:
 
         return not self.pa_can_pass(company)
 
+    def act_pa_pass(self):
+        self.next_pa_player()
+
+    def next_pa_player(self):
+        self.current_player = self.players[(self.current_player.id + 1) % (len(self.players))]
 
     def get_state(self):
         state = {
@@ -325,4 +330,3 @@ class Game:
             self.players.append(player)
         self.bank = state["bank"]
         self.current_player = self.players[state["current_player"]]
-

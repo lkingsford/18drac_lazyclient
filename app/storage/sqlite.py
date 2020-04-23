@@ -30,7 +30,7 @@ class Sqlite(Storage):
         if game_id:
             # Game exists, update
             csr.execute("""
-                UPDATE game SET (state=?, last_update=?) WHERE (rowid=?)
+                UPDATE game SET state=?, last_update=? WHERE rowid=?
                 """, (game_state, timestamp, game_id))
         else:
             # Create new game

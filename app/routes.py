@@ -45,3 +45,13 @@ def create_game():
     game.start_game(players)
     game_id = db.save_game_state(None, game.get_state(), datetime.datetime.now())
     return redirect(url_for("view", game_id=game_id))
+
+# Game play
+
+@app.route('/game/<game_id>/pa/pass')
+def pa_pass(game_id):
+    state = db.load_game_state(game_id)
+    game = Game(state)
+    game.act_pa_pass()
+    db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
+    return redirect(url_for("view", game_id=game_id))
