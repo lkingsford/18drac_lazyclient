@@ -12,7 +12,7 @@
    viewBox="0 0 20.112474 20.112474"
    version="1.1"
    id="svg620"
-   inkscape:version="1.1-dev (ddb55ca, 2020-02-02)"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
    sodipodi:docname="bh_flip.svg">
   <defs
      id="defs614" />
@@ -24,8 +24,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.4726721"
-     inkscape:cx="-112.70229"
-     inkscape:cy="149.74068"
+     inkscape:cx="-66.86724"
+     inkscape:cy="126.6534"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -56,7 +56,7 @@
      id="layer1"
      transform="translate(-76.22316,5.2567745)">
     <circle
-       style="display:inline;fill:none;stroke:#784421;stroke-width:0.65;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
+       style="display:inline;fill:#ffffff;stroke:#784421;stroke-width:0.65;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
        id="circle9424"
        cx="86.279396"
        cy="4.7994628"
