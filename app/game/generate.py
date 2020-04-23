@@ -37,8 +37,6 @@ def generate_map(game):
     destination_text_size = {"Export":"8", "City":"8", "Town":"6"}
     destination_shapes = {"Export":"none", "City":"none", "Town":"point"}
 
-
-
     graph = graphviz.Graph(engine="sfdp",
                            graph_attr=[("size", "20,20"),
                                        ("overlap","false"),

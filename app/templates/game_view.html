@@ -23,11 +23,18 @@
         <table>
           <tr>
             <td><img src= {{ game.companies[c].token_img }} width="32px" height = "32px"/></td>
-            <td>{{ game.companies[c].display_name }}</td>
+            <td colspan=4>{{ game.companies[c].display_name }}</td>
           </tr>
           <tr>
-            <td colspan=2 style="background-color: {{game.companies[c].color}}" ;></td>
+            <td colspan=5 style="background-color: {{game.companies[c].color}}" ;></td>
           </tr>
+          {% if game.companies[c].ipo %}
+          <tr>
+            <td></td>
+            <td colspan=2>Market price {{ game.companies[c].current_price() }}</td>
+            <td colspan=2>IPO price: {{ game.companies[c].ipo }}</td>
+          </tr>
+          {% endif %}
         </table>
       </div></div>
       {% endfor %}

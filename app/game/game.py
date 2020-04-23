@@ -58,6 +58,19 @@ class Game:
         def current_price(self):
             return self.market.get_company_spot(self).price
 
+        def get_state(self):
+            return {'started': self.started,
+                    'cash': self.cash,
+                    'stations_remaining': self.stations_remaining,
+                    'ipo': self.ipo,
+                     }
+
+        def load_state(self, state):
+            self.started = state['started']
+            self.cash = state['cash']
+            self.stations_remaining = state['stations_remaining']
+            self.ipo = state['ipo']
+
     class Market:
         class StockSpot:
             def __init__(self, price, color, x, y):
@@ -135,6 +148,9 @@ class Game:
     def start_game(self):
         self.phase = 0
         self.game_turn_status = Game.GameTurnStatus.first_stock_round
+        self.companies['ka'].start_new_company(100)
+        self.companies['uu'].start_new_company(100)
+        self.companies['ibs'].start_new_company(80)
 
     def load_map(self, destinations, routes, companies):
         for row in destinations:
@@ -169,6 +185,7 @@ class Game:
             "phase": self.phase,
             "game_turn_status": str(self.game_turn_status),
             "market": self.market.get_state(),
+            "companies": {company.id: company.get_state() for company in self.companies.values()}
         }
         return json.dumps(state)
 
@@ -177,3 +194,5 @@ class Game:
         self.phase = state["phase"]
         self.game_turn_status = state["game_turn_status"]
         self.market.load_state(state["market"], self.companies)
+        for id, co_state in state["companies"].items():
+            self.companies[id].load_state(co_state)
