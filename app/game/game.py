@@ -127,7 +127,6 @@ class Game:
                 spot = self.get_spot(x, y)
                 spot.companies = [companies[i] for i in value]
 
-
     class Player():
         def __init__(self, name = None):
             self.name = name
@@ -140,7 +139,6 @@ class Game:
         def load_state(self, state):
             self.name = state['name']
             self.cash = state['cash']
-
 
     def __init__(self, load_state = None):
         with open("app/assets/Market.csv") as market_file:
@@ -157,6 +155,10 @@ class Game:
             self.players = []
             self.load_map(destination_reader, route_reader, companies_list)
             self.load_companies(companies_list)
+        with open("app/assets/rules.json") as rules_file:
+            rules = json.load(rules_file)
+            self.starting_cash = rules['starting_cash']
+            self.bank_size = rules['bank_size']
         if load_state:
             self.load_state(load_state)
         # Have to start game externally
@@ -165,8 +167,26 @@ class Game:
         self.phase = 0
         self.game_turn_status = Game.GameTurnStatus.first_stock_round
         # Randomize players
-        player_order = random.choice(players)
-        self.players = [Game.Player(i) for i in player_order]
+        random.shuffle(players)
+        self.players = [Game.Player(i) for i in players]
+        self.bank = self.bank_size
+        # Deal starting cash
+        starting_cash = int(self.starting_cash / len(self.players))
+        for player in self.players:
+            self.transfer_cash(starting_cash, player)
+
+    def transfer_cash(self, quantity, to_party, from_party = None):
+        # None = bank
+        # transfer_cash(50, player) will transfer 50$ from bank to player
+        if not to_party:
+            self.bank += quantity
+        else:
+            to_party.cash += quantity
+        if not from_party:
+            self.bank -= quantity
+        else:
+            from_party.cash -= quantity
+
 
     def load_map(self, destinations, routes, companies):
         for row in destinations:
@@ -203,6 +223,7 @@ class Game:
             "market": self.market.get_state(),
             "companies": {company.id: company.get_state() for company in self.companies.values()},
             "players": [player.get_state() for player in self.players],
+            "bank": self.bank,
         }
         return json.dumps(state)
 
@@ -217,3 +238,4 @@ class Game:
             player = Game.Player()
             player.load_state(player_state)
             self.players.append(player)
+        self.bank = state["bank"]
