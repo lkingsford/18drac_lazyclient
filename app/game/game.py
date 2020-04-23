@@ -38,6 +38,7 @@ class Game:
     class Company:
         def __init__(self, market, id, display_name, color):
             self.started = False
+            self.floated = False
             self.cash = 0
             self.stations_remaining = 4
             self.display_name = display_name
@@ -51,16 +52,18 @@ class Game:
                 raise Game.GameRuleViolation(f"IPO {ipo} not in market IPOs ({self.market.ipos})")
             self.ipo = ipo
             self.market.ipo_place(self, ipo)
+            self.started = True
 
         def float(self):
             self.cash = 10 * self.ipo
-            self.started = True
+            self.floated = True
 
         def current_price(self):
             return self.market.get_company_spot(self).price
 
         def get_state(self):
             return {'started': self.started,
+                    'floated': self.floated,
                     'cash': self.cash,
                     'stations_remaining': self.stations_remaining,
                     'ipo': self.ipo,
@@ -68,6 +71,7 @@ class Game:
 
         def load_state(self, state):
             self.started = state['started']
+            self.floated = state['floated']
             self.cash = state['cash']
             self.stations_remaining = state['stations_remaining']
             self.ipo = state['ipo']
