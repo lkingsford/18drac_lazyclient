@@ -1,5 +1,6 @@
 import csv
 import json
+import random
 from enum import Enum
 from itertools import chain
 
@@ -126,6 +127,21 @@ class Game:
                 spot = self.get_spot(x, y)
                 spot.companies = [companies[i] for i in value]
 
+
+    class Player():
+        def __init__(self, name = None):
+            self.name = name
+            self.cash = 0
+
+        def get_state(self):
+            return {'name': self.name,
+                    'cash': self.cash}
+
+        def load_state(self, state):
+            self.name = state['name']
+            self.cash = state['cash']
+
+
     def __init__(self, load_state = None):
         with open("app/assets/Market.csv") as market_file:
             reader = csv.reader(market_file)
@@ -138,19 +154,19 @@ class Game:
             companies_list = [i for i in csv.reader(companies_file)]
             self.destinations = []
             self.routes = []
+            self.players = []
             self.load_map(destination_reader, route_reader, companies_list)
             self.load_companies(companies_list)
         if load_state:
             self.load_state(load_state)
-        else:
-            self.start_game()
+        # Have to start game externally
 
-    def start_game(self):
+    def start_game(self, players):
         self.phase = 0
         self.game_turn_status = Game.GameTurnStatus.first_stock_round
-        self.companies['ka'].start_new_company(100)
-        self.companies['uu'].start_new_company(100)
-        self.companies['ibs'].start_new_company(80)
+        # Randomize players
+        player_order = random.choice(players)
+        self.players = [Game.Player(i) for i in player_order]
 
     def load_map(self, destinations, routes, companies):
         for row in destinations:
@@ -185,7 +201,8 @@ class Game:
             "phase": self.phase,
             "game_turn_status": str(self.game_turn_status),
             "market": self.market.get_state(),
-            "companies": {company.id: company.get_state() for company in self.companies.values()}
+            "companies": {company.id: company.get_state() for company in self.companies.values()},
+            "players": [player.get_state() for player in self.players],
         }
         return json.dumps(state)
 
@@ -196,3 +213,7 @@ class Game:
         self.market.load_state(state["market"], self.companies)
         for id, co_state in state["companies"].items():
             self.companies[id].load_state(co_state)
+        for player_state in state["players"]:
+            player = Game.Player()
+            player.load_state(player_state)
+            self.players.append(player)

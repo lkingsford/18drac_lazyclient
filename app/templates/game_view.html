@@ -8,7 +8,7 @@
 <div class="tabs">
 <button class="tablinks" onclick="openTab(event, 'map_tab');">Map</button>
 <button class="tablinks" onclick="openTab(event, 'market_tab');")>Market</button>
-<button class="tablinks" onclick="openTab(event, 'company_tab');")>Companies</button>
+<button class="tablinks" onclick="openTab(event, 'company_tab');")>Companies and Players</button>
 </div>
 <div id="map_tab" class="tabcontent">
 <object type="image/svg+xml" data={{url_for("map_image", game_id=game_id)}}></object>
@@ -17,6 +17,7 @@
 <object type="image/svg+xml" data={{url_for("market", game_id=game_id)}}></object>
 </div>
 <div id="company_tab" class="tabcontent">
+  <h2>Companies</h2>
     <div class="company_row">
       {% for c in game.companies %}
       <div class="company_column"><div class="company_card">
@@ -39,6 +40,18 @@
       </div></div>
       {% endfor %}
     </div>
+
+    <h2>Players</h2>
+    <div class="company_row">
+      {% for p in game.players %}
+      <div class="company_column"><div class="company_card">
+        <table>
+          <tr>
+            <td>{{p.name}}</td>
+          </tr>
+        </table>
+      </div></div>
+      {% endfor %}
 </div>
 </section>
 <script src={{url_for("static", filename="game_view.js")}}></script>

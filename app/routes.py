@@ -1,6 +1,6 @@
 import io
 import datetime
-from flask import send_file, render_template, redirect, url_for
+from flask import send_file, render_template, redirect, url_for, request
 from app import app, db
 from app.game.game import Game
 from app.game.generate import generate_map, generate_market
@@ -32,8 +32,16 @@ def view(game_id):
 def create_form():
     return render_template('create.html')
 
-@app.route('/create_game')
+@app.route('/create_game', methods=['POST'])
 def create_game():
     game = Game()
+    player_1 = request.form.get('player_1_name')
+    player_2 = request.form.get('player_2_name')
+    player_3 = request.form.get('player_3_name')
+    player_4 = request.form.get('player_4_name')
+    player_5 = request.form.get('player_5_name')
+    player_6 = request.form.get('player_6_name')
+    players = [i for i in [player_1, player_2, player_3, player_4, player_5, player_6] if i and i != ""]
+    game.start_game(players)
     game_id = db.save_game_state(None, game.get_state(), datetime.datetime.now())
     return redirect(url_for("view", game_id=game_id))
