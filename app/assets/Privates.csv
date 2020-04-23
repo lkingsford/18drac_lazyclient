@@ -1,0 +1,8 @@
+il,Innsmouth Library,30,15,il,"Priority in first stock round"
+jh,Jekyl & Hyde,50,10,jh,"Can be activated at any time after purchase to remove a highwayman (Yellow cube), or add a highwayman (Yellow cube) to any route - including those which are open. This closes the associate."
+fl,Frankenstein's Lab,55,15,fl,"Completely clear a route available in the current phase. Can be used once for free, and a second time at the cost of closing the associate. Each use counts as a route action."
+cv,Church of the endless void,60,20,cv,"Can be activated at any time after purchase to reserve the next token space to open (when the city upgrades) for the purchased front. The front must pay for the token and place it when the tile is reserved. This closes the associate."
+ll,Lupin's Lipids,80,0,ll,"Private company with 1 werewolf and token in Ubervale that can be merged into a company"
+bt,Blundell's Transfusions,100,0,bt,"Private company with 1 nurse, one token in Harrierbend, and an ability to purchase more nurses, that can be merged into a company"
+mi,Molemen Inc,115,20,mi,"Connect two cities (excluding Dracula's Moving castle) that otherwise can not be connected. They can be any distance across the map. They are then regarded an adjacent, open route available to all fronts. This counts as a route action. This closes the associate."
+fd,Flying Dutchman,180,30,fd,"One purchased by a front, the Flying Dutchman can be used add an additional river/ocean segment to a single monster's rampage. It can be anywhere along the route, including the beginning or end, and can be the segment that includes the companies token. This associate never closes."

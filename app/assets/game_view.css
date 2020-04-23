@@ -70,3 +70,12 @@
       margin-bottom: 20px;
     }
   }
+
+  .description {
+    font-size: 70%
+  }
+
+  .private_card {
+    min-width: 200px;
+    min-height: 200px;
+  }

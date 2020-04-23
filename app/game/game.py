@@ -35,6 +35,15 @@ class Game:
         def __init__(self):
             pass
 
+    class PrivateCompany:
+        def __init__(self, id, name, base_cost, revenue, description):
+            self.id = id
+            self.name = name
+            self.base_cost = base_cost
+            self.revenue = revenue
+            self.description = description
+            self.owner = None
+
     class Company:
         def __init__(self, market, id, display_name, color):
             self.started = False
@@ -159,6 +168,9 @@ class Game:
             self.players = []
             self.load_map(destination_reader, route_reader, companies_list)
             self.load_companies(companies_list)
+        with open("app/assets/Privates.csv") as privates_file:
+            privates_reader = csv.reader(privates_file)
+            self.load_privates(privates_reader)
         with open("app/assets/rules.json") as rules_file:
             rules = json.load(rules_file)
             self.starting_cash = rules['starting_cash']
@@ -219,6 +231,9 @@ class Game:
 
     def load_companies(self, companies):
         self.companies = {i[0]: Game.Company(self.market, i[0], i[1], i[4]) for i in companies}
+
+    def load_privates(self, privates):
+        self.privates = {i[0]: Game.PrivateCompany(i[0], i[1], int(i[2]), int(i[3]), i[5]) for i in privates}
 
     def get_state(self):
         state = {
