@@ -1,4 +1,5 @@
 {
     "starting_cash":2400,
-    "bank_size":14400
+    "bank_size":14400,
+    "min_bid_increment":2
 }

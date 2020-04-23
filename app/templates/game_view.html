@@ -3,6 +3,8 @@
 <link href={{url_for("static", filename="game_view.css")}} rel="stylesheet" type="text/css"/>
 <nav>
   <h1>18Dracula Game {{ game_id }}</h1>
+  <h2>Current player: {{ game.current_player.name }}</h2>
+  <h3>{{ game.current_action_display }}</h2>
 </nav>
 <section class="content">
 <div class="tabs">
@@ -11,14 +13,25 @@
 <button class="tablinks" onclick="openTab(event, 'company_tab');")>Fronts and Players</button>
 <button class="tablinks" onclick="openTab(event, 'associates_tab');")>Associates</button>
 </div>
+
+{% if game.start_on() == 'map' %}
+<div id="map_tab" class="tabcontent active">
+{% else %}
 <div id="map_tab" class="tabcontent">
+{% endif %}
 <object type="image/svg+xml" data={{url_for("map_image", game_id=game_id)}}></object>
 </div>
+
 <div id="market_tab" class="tabcontent">
 <object type="image/svg+xml" data={{url_for("market", game_id=game_id)}}></object>
 </div>
+
+{% if game.start_on() == 'fronts' %}
+<div id="company_tab" class="tabcontent active">
+{% else %}
 <div id="company_tab" class="tabcontent">
-  <h2>Companies</h2>
+{% endif %}
+  <h2>Fronts</h2>
     <div class="company_row">
       {% for c in game.companies %}
       <div class="company_column"><div class="company_card">
@@ -60,7 +73,19 @@
     <h2>Bank: {{ game.bank }}</h2>
   </div>
 
+  {% if game.start_on() == 'associate' %}
+  <div id="associates_tab" class="tabcontent active">
+  {% else %}
   <div id="associates_tab" class="tabcontent">
+  {% endif %}
+  {% if game.game_turn_status.value == 0 or game.game_turn_status.value == 1 %}
+  <H2>Uncommitted cash:</H2>
+  <ul>
+  {% for p in game.players %}
+  <li>{{ p.name }}: {{ game.pa_get_uncommitted_cash(p.id) }}</li>
+  {% endfor %}
+  </ul>
+  {% endif %}
   {% for p in game.privates.values() %}
     <div class="company_column"><div class="company_card private_card">
       <table>
@@ -75,6 +100,22 @@
           <td colspan=2 class="description">{{p.description}}</td>
         </tr>
       </table>
+      {% if p.owner != None %}
+        Owned by {{b.owner.name}}
+      {% else %}
+        {% for b in p.bids %}
+        {{b[0].name}} bid {{b[1]}}
+        {% endfor %}
+      {% endif %}
+      {% if game.pa_can_buy(p) %}
+      Buy
+      {% endif %}
+      {% if game.pa_can_pass(p) %}
+      Pass
+      {% endif %}
+      {% if game.pa_can_bid(p) %}
+      Bid
+      {% endif %}
     </div></div>
   {% endfor %}
   </div>

@@ -43,6 +43,12 @@ class Game:
             self.revenue = revenue
             self.description = description
             self.owner = None
+            self.bids = []
+
+        def bid(self, bidder, bid):
+            if len(self.bids) > 0:
+                assert bid > self.bids[-1][1]
+            self.bids.append((bidder, bid))
 
     class Company:
         def __init__(self, market, id, display_name, color):
@@ -141,17 +147,20 @@ class Game:
                 spot.companies = [companies[i] for i in value]
 
     class Player():
-        def __init__(self, name = None):
+        def __init__(self, id = 0, name = None):
+            self.id = id
             self.name = name
             self.cash = 0
 
         def get_state(self):
             return {'name': self.name,
-                    'cash': self.cash}
+                    'cash': self.cash,
+                    'id': self.id}
 
         def load_state(self, state):
             self.name = state['name']
             self.cash = state['cash']
+            self.id = int(state['id'])
 
     def __init__(self, load_state = None):
         with open("app/assets/Market.csv") as market_file:
@@ -175,21 +184,23 @@ class Game:
             rules = json.load(rules_file)
             self.starting_cash = rules['starting_cash']
             self.bank_size = rules['bank_size']
+            self.mid_bid_increment = rules['min_bid_increment']
         if load_state:
             self.load_state(load_state)
         # Have to start game externally
 
     def start_game(self, players):
         self.phase = 0
-        self.game_turn_status = Game.GameTurnStatus.first_stock_round
+        self.game_turn_status = Game.GameTurnStatus.private_auction_buy_or_bid
         # Randomize players
         random.shuffle(players)
-        self.players = [Game.Player(i) for i in players]
+        self.players = [Game.Player(i, j) for i, j in enumerate(players)]
         self.bank = self.bank_size
         # Deal starting cash
         starting_cash = int(self.starting_cash / len(self.players))
         for player in self.players:
             self.transfer_cash(starting_cash, player)
+        self.current_player = self.players[0]
 
     def transfer_cash(self, quantity, to_party, from_party = None):
         # None = bank
@@ -202,7 +213,6 @@ class Game:
             self.bank -= quantity
         else:
             from_party.cash -= quantity
-
 
     def load_map(self, destinations, routes, companies):
         for row in destinations:
@@ -235,21 +245,77 @@ class Game:
     def load_privates(self, privates):
         self.privates = {i[0]: Game.PrivateCompany(i[0], i[1], int(i[2]), int(i[3]), i[5]) for i in privates}
 
+    def start_on(self):
+        return {
+            Game.GameTurnStatus.private_auction_buy_or_bid: 'associate',
+            Game.GameTurnStatus.private_auction_bid: 'associate',
+            Game.GameTurnStatus.first_stock_round: 'fronts',
+            Game.GameTurnStatus.stock_round: 'fronts',
+            Game.GameTurnStatus.operation_clear_track: 'map',
+            Game.GameTurnStatus.operation_buy_office: 'map',
+            Game.GameTurnStatus.operation_rampage: 'map',
+            # todo: change once there's a monster screen
+            Game.GameTurnStatus.operation_buy_monsters: None,
+            Game.GameTurnStatus.operation_force_sell_stock_round: 'fronts',
+            Game.GameTurnStatus.bankruptcy: 'fronts'
+        }[self.game_turn_status]
+
+    def pa_get_uncommitted_cash(self, player_id):
+        return self.players[player_id].cash
+
+    def pa_can_pass(self, company):
+        # Cheapest unpurchased company
+        if self.game_turn_status.value not in [0, 1]:
+            return False
+        if company.owner:
+            return False
+        for i in self.privates.values():
+            if i.id == company.id:
+                return True
+            if not i.owner:
+                return False
+
+    def pa_can_buy(self, company):
+        if self.game_turn_status.value not in [0]:
+            return False
+        if company.owner:
+            return False
+        for i in self.privates.values():
+            if i.id == company.id:
+                return True
+            if not i.owner:
+                return False
+
+    def pa_can_bid(self, company):
+        if self.game_turn_status.value not in [0, 1]:
+            return False
+
+        if self.game_turn_status.value == 1:
+            for i in self.privates.values():
+                if i.id == company.id:
+                    return True
+                if not i.owner:
+                    return False
+
+        return not self.pa_can_pass(company)
+
+
     def get_state(self):
         state = {
             "phase": self.phase,
-            "game_turn_status": str(self.game_turn_status),
+            "game_turn_status": self.game_turn_status.value,
             "market": self.market.get_state(),
             "companies": {company.id: company.get_state() for company in self.companies.values()},
             "players": [player.get_state() for player in self.players],
             "bank": self.bank,
+            "current_player": self.current_player.id,
         }
         return json.dumps(state)
 
     def load_state(self, state):
         state = json.loads(state)
         self.phase = state["phase"]
-        self.game_turn_status = state["game_turn_status"]
+        self.game_turn_status = Game.GameTurnStatus(state["game_turn_status"])
         self.market.load_state(state["market"], self.companies)
         for id, co_state in state["companies"].items():
             self.companies[id].load_state(co_state)
@@ -258,3 +324,5 @@ class Game:
             player.load_state(player_state)
             self.players.append(player)
         self.bank = state["bank"]
+        self.current_player = self.players[state["current_player"]]
+
