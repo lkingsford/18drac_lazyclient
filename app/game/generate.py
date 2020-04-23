@@ -3,6 +3,30 @@ from flask import url_for
 import graphviz
 import svgwrite
 
+# Must be generated during query for url_for
+def images():
+    return {"CitySpace": ['app/assets/CitySpace.svg', url_for('static_assets', path='CitySpace.svg')],
+            "bh": ['app/assets/tokens/bh.svg', url_for('static_assets', path="tokens/bh.svg")],
+            "bh_flip": ['app/assets/tokens/bh_flip.svg', url_for('static_assets', path="tokens/bh_flip.svg")],
+            "bt": ['app/assets/tokens/bt.svg', url_for('static_assets', path="tokens/bt.svg")],
+            "bt_flip": ['app/assets/tokens/bt_flip.svg', url_for('static_assets', path="tokens/bt_flip.svg")],
+            "ett": ['app/assets/tokens/ett.svg', url_for('static_assets', path="tokens/ett.svg")],
+            "ett_flip": ['app/assets/tokens/ett_flip.svg', url_for('static_assets', path="tokens/ett_flip.svg")],
+            "gs": ['app/assets/tokens/gs.svg', url_for('static_assets', path="tokens/gs.svg")],
+            "gs_flip": ['app/assets/tokens/gs_flip.svg', url_for('static_assets', path="tokens/gs_flip.svg")],
+            "gw": ['app/assets/tokens/gw.svg', url_for('static_assets', path="tokens/gw.svg")],
+            "gw_flip": ['app/assets/tokens/gw_flip.svg', url_for('static_assets', path="tokens/gw_flip.svg")],
+            "ibs": ['app/assets/tokens/ibs.svg', url_for('static_assets', path="tokens/ibs.svg")],
+            "ibs_flip": ['app/assets/tokens/ibs_flip.svg', url_for('static_assets', path="tokens/ibs_flip.svg")],
+            "ka": ['app/assets/tokens/ka.svg', url_for('static_assets', path="tokens/ka.svg")],
+            "ka_flip": ['app/assets/tokens/ka_flip.svg', url_for('static_assets', path="tokens/ka_flip.svg")],
+            "ll": ['app/assets/tokens/ll.svg', url_for('static_assets', path="tokens/ll.svg")],
+            "ll_flip": ['app/assets/tokens/ll_flip.svg', url_for('static_assets', path="tokens/ll_flip.svg")],
+            "ss": ['app/assets/tokens/ss.svg', url_for('static_assets', path="tokens/ss.svg")],
+            "ss_flip": ['app/assets/tokens/ss_flip.svg', url_for('static_assets', path="tokens/ss_flip.svg")],
+            "uu": ['app/assets/tokens/uu.svg', url_for('static_assets', path="tokens/uu.svg")],
+            "uu_flip": ['app/assets/tokens/uu_flip.svg', url_for('static_assets', path="tokens/uu_flip.svg")]}
+
 def generate_map(game):
     # Lazy, 'cause I couldn't be bothered changing code
     destinations = game.destinations
@@ -13,27 +37,6 @@ def generate_map(game):
     destination_text_size = {"Export":"8", "City":"8", "Town":"6"}
     destination_shapes = {"Export":"none", "City":"none", "Town":"point"}
 
-    images = {"CitySpace": ['app/assets/CitySpace.svg', url_for('static_assets', path='CitySpace.svg')],
-              "bh": ['app/assets/tokens/bh.svg', url_for('static_assets', path="tokens/bh.svg")],
-              "bh_flip": ['app/assets/tokens/bh_flip.svg', url_for('static_assets', path="tokens/bh_flip.svg")],
-              "bt": ['app/assets/tokens/bt.svg', url_for('static_assets', path="tokens/bt.svg")],
-              "bt_flip": ['app/assets/tokens/bt_flip.svg', url_for('static_assets', path="tokens/bt_flip.svg")],
-              "ett": ['app/assets/tokens/ett.svg', url_for('static_assets', path="tokens/ett.svg")],
-              "ett_flip": ['app/assets/tokens/ett_flip.svg', url_for('static_assets', path="tokens/ett_flip.svg")],
-              "gs": ['app/assets/tokens/gs.svg', url_for('static_assets', path="tokens/gs.svg")],
-              "gs_flip": ['app/assets/tokens/gs_flip.svg', url_for('static_assets', path="tokens/gs_flip.svg")],
-              "gw": ['app/assets/tokens/gw.svg', url_for('static_assets', path="tokens/gw.svg")],
-              "gw_flip": ['app/assets/tokens/gw_flip.svg', url_for('static_assets', path="tokens/gw_flip.svg")],
-              "ibs": ['app/assets/tokens/ibs.svg', url_for('static_assets', path="tokens/ibs.svg")],
-              "ibs_flip": ['app/assets/tokens/ibs_flip.svg', url_for('static_assets', path="tokens/ibs_flip.svg")],
-              "ka": ['app/assets/tokens/ka.svg', url_for('static_assets', path="tokens/ka.svg")],
-              "ka_flip": ['app/assets/tokens/ka_flip.svg', url_for('static_assets', path="tokens/ka_flip.svg")],
-              "ll": ['app/assets/tokens/ll.svg', url_for('static_assets', path="tokens/ll.svg")],
-              "ll_flip": ['app/assets/tokens/ll_flip.svg', url_for('static_assets', path="tokens/ll_flip.svg")],
-              "ss": ['app/assets/tokens/ss.svg', url_for('static_assets', path="tokens/ss.svg")],
-              "ss_flip": ['app/assets/tokens/ss_flip.svg', url_for('static_assets', path="tokens/ss_flip.svg")],
-              "uu": ['app/assets/tokens/uu.svg', url_for('static_assets', path="tokens/uu.svg")],
-              "uu_flip": ['app/assets/tokens/uu_flip.svg', url_for('static_assets', path="tokens/uu_flip.svg")]}
 
 
     graph = graphviz.Graph(engine="sfdp",
@@ -84,7 +87,7 @@ def generate_map(game):
                             co = destination.stations[station]
                             started = game.companies[co].started
                             image = co + ("" if started else "_flip")
-                        label += f"<TD fixedsize='true'><IMG SRC='{(images[image])[0]}'/></TD>"
+                        label += f"<TD fixedsize='true'><IMG SRC='{(images()[image])[0]}'/></TD>"
                 label += "</TR></TABLE></TD></TR>"
             label += "<TR><TD><TABLE>"
             label += get_value_row(destination.upgrades, destination.values, destination.station_count)
@@ -146,7 +149,7 @@ def generate_map(game):
     # Basically, graphviz's paths are different to the ones available on the
     # web app - so yeah.
     svg_file_text = svg_file.decode()
-    for row in images.values():
+    for row in images().values():
         svg_file_text = svg_file_text.replace(row[0], row[1])
     return svg_file_text.encode('utf-8')
 
@@ -165,8 +168,20 @@ def generate_market(game):
                             (scale, scale),
                             stroke="black", fill=color))
                 display.add(display.text(cell[1].price,
-                                         insert=(cell[0] * scale + scale / 5,
-                                                 row[0] * scale + scale / 2),
+                                         insert=(cell[0] * scale + scale / 10,
+                                                 row[0] * scale + scale / 3),
                                          fill="black"))
+
+    for row in enumerate(market.table):
+        for cell in enumerate(row[1]):
+            if cell[1]:
+                for number, company in reversed(list(enumerate(cell[1].companies))):
+                    imgsize = 26
+                    x = (1 + cell[0]) * scale - imgsize
+                    y = (number) * scale / 5 + row[0] * scale
+                    image = company.id + ("" if company.started else "_flip")
+                    display.add(display.image(href=images()[image][1],
+                                            insert=(x, y),
+                                            size=(imgsize, imgsize)))
 
     return display.tostring()
