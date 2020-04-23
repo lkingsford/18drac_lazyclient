@@ -21,7 +21,6 @@ class Game:
         operation_force_sell_stock_round = 7
         bankruptcy = 8
 
-
     class Destination:
         def __init__(self):
             pass
@@ -105,7 +104,7 @@ class Game:
             home.stations.append(company[0])
 
     def load_companies(self, companies):
-        self.companies = [Game.Company(i[0], i[1]) for i in companies]
+        self.companies = {i[0]: Game.Company(i[0], i[1]) for i in companies}
     
     def get_state(self):
         state = {

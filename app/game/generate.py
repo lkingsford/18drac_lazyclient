@@ -13,6 +13,29 @@ def generate_map(game):
     destination_text_size = {"Export":"8", "City":"8", "Town":"6"}
     destination_shapes = {"Export":"none", "City":"none", "Town":"point"}
 
+    images = {"CitySpace": ['app/assets/CitySpace.svg', url_for('static_assets', path='CitySpace.svg')],
+              "bh": ['app/assets/tokens/bh.svg', url_for('static_assets', path="tokens/bh.svg")],
+              "bh_flip": ['app/assets/tokens/bh_flip.svg', url_for('static_assets', path="tokens/bh_flip.svg")],
+              "bt": ['app/assets/tokens/bt.svg', url_for('static_assets', path="tokens/bt.svg")],
+              "bt_flip": ['app/assets/tokens/bt_flip.svg', url_for('static_assets', path="tokens/bt_flip.svg")],
+              "ett": ['app/assets/tokens/ett.svg', url_for('static_assets', path="tokens/ett.svg")],
+              "ett_flip": ['app/assets/tokens/ett_flip.svg', url_for('static_assets', path="tokens/ett_flip.svg")],
+              "gs": ['app/assets/tokens/gs.svg', url_for('static_assets', path="tokens/gs.svg")],
+              "gs_flip": ['app/assets/tokens/gs_flip.svg', url_for('static_assets', path="tokens/gs_flip.svg")],
+              "gw": ['app/assets/tokens/gw.svg', url_for('static_assets', path="tokens/gw.svg")],
+              "gw_flip": ['app/assets/tokens/gw_flip.svg', url_for('static_assets', path="tokens/gw_flip.svg")],
+              "ibs": ['app/assets/tokens/ibs.svg', url_for('static_assets', path="tokens/ibs.svg")],
+              "ibs_flip": ['app/assets/tokens/ibs_flip.svg', url_for('static_assets', path="tokens/ibs_flip.svg")],
+              "ka": ['app/assets/tokens/ka.svg', url_for('static_assets', path="tokens/ka.svg")],
+              "ka_flip": ['app/assets/tokens/ka_flip.svg', url_for('static_assets', path="tokens/ka_flip.svg")],
+              "ll": ['app/assets/tokens/ll.svg', url_for('static_assets', path="tokens/ll.svg")],
+              "ll_flip": ['app/assets/tokens/ll_flip.svg', url_for('static_assets', path="tokens/ll_flip.svg")],
+              "ss": ['app/assets/tokens/ss.svg', url_for('static_assets', path="tokens/ss.svg")],
+              "ss_flip": ['app/assets/tokens/ss_flip.svg', url_for('static_assets', path="tokens/ss_flip.svg")],
+              "uu": ['app/assets/tokens/uu.svg', url_for('static_assets', path="tokens/uu.svg")],
+              "uu_flip": ['app/assets/tokens/uu_flip.svg', url_for('static_assets', path="tokens/uu_flip.svg")]}
+
+
     graph = graphviz.Graph(engine="sfdp",
                            graph_attr=[("size", "20,20"),
                                        ("overlap","false"),
@@ -34,7 +57,7 @@ def generate_map(game):
             result += '</TD>'
         result += "</TR>"
         return result
-    city_img = 'app/assets/CitySpace.svg'
+
     for destination in destinations:
         color = destination_colors[destination.dest_type]
         if destination.dest_type == "Town":
@@ -55,10 +78,13 @@ def generate_map(game):
             if max_stations > 0:
                 label += "<TR><TD><TABLE><TR>"
                 for station in range(max_stations):
-                    # TODO: Fix this. It's wrong. It should be amount upgrades
-                    # in city, not phase of the station
                     if station < destination.station_count[destination.current_upgrades]:
-                        label += f"<TD><IMG SRC='{city_img}'/></TD>"
+                        image = 'CitySpace'
+                        if len(destination.stations) > station:
+                            co = destination.stations[station]
+                            started = game.companies[co].started
+                            image = co + ("" if started else "_flip")
+                        label += f"<TD><IMG SRC='{(images[image])[0]}'/></TD>"
                 label += "</TR></TABLE></TD></TR>"
             label += "<TR><TD><TABLE>"
             label += get_value_row(destination.upgrades, destination.values, destination.station_count)
@@ -117,8 +143,12 @@ def generate_map(game):
                 length=str(length_weight))
     svg_file = graph.pipe(format="svg")
     # Hacky, but we want the url to be correct for the image
-    svg_file = svg_file.decode().replace(city_img, url_for('static_assets', path="CitySpace.svg")).encode("utf-8")
-    return svg_file
+    # Basically, graphviz's paths are different to the ones available on the
+    # web app - so yeah.
+    svg_file_text = svg_file.decode()
+    for row in images.values():
+        svg_file_text = svg_file_text.replace(row[0], row[1])
+    return svg_file_text.encode('utf-8')
 
 def generate_market(game):
     display = svgwrite.Drawing(size=("900px","500px"))
