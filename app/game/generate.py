@@ -84,7 +84,7 @@ def generate_map(game):
                             co = destination.stations[station]
                             started = game.companies[co].started
                             image = co + ("" if started else "_flip")
-                        label += f"<TD><IMG SRC='{(images[image])[0]}'/></TD>"
+                        label += f"<TD fixedsize='true'><IMG SRC='{(images[image])[0]}'/></TD>"
                 label += "</TR></TABLE></TD></TR>"
             label += "<TR><TD><TABLE>"
             label += get_value_row(destination.upgrades, destination.values, destination.station_count)
