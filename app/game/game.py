@@ -281,7 +281,7 @@ class Game:
 
 # PRIVATE AUCTION
     def pa_get_uncommitted_cash(self, player_id):
-        return self.players[player_id].cash
+        return self.players[player_id].cash - sum([sum([i[1] for i in j.bids if i[0].id == player_id]) for j in self.privates])
 
     def pa_can_pass(self, company):
         # Cheapest unpurchased company
