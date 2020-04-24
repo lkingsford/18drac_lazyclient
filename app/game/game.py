@@ -46,9 +46,20 @@ class Game:
             self.bids = []
 
         def bid(self, bidder, bid):
-            if len(self.bids) > 0:
-                assert bid > self.bids[-1][1]
             self.bids.append((bidder, bid))
+
+        def get_state(self):
+            return {
+                'owner': self.owner.id if self.owner is not None else None,
+                'bids': [(i[0], i[1]) for i in self.bids],
+            }
+
+        def load_state(self, state, game):
+            self.owner = game.players[state['owner']] if state['owner'] else None
+            self.bids = [i for i in state['bids']]
+
+        def next_min_bid_amount(self, game):
+            return self.bids[-1][1] + game.min_bid_increment
 
     class Company:
         def __init__(self, market, id, display_name, color):
@@ -201,6 +212,8 @@ class Game:
         for player in self.players:
             self.transfer_cash(starting_cash, player)
         self.current_player = self.players[0]
+        self.pa_next_buy_player = self.players[0]
+        self.pa_current_private = self.privates[0]
 
     def transfer_cash(self, quantity, to_party, from_party = None):
         # None = bank
@@ -243,7 +256,7 @@ class Game:
         self.companies = {i[0]: Game.Company(self.market, i[0], i[1], i[4]) for i in companies}
 
     def load_privates(self, privates):
-        self.privates = {i[0]: Game.PrivateCompany(i[0], i[1], int(i[2]), int(i[3]), i[5]) for i in privates}
+        self.privates = [Game.PrivateCompany(i[0], i[1], int(i[2]), int(i[3]), i[5]) for i in privates]
 
     def start_on(self):
         return {
@@ -260,6 +273,7 @@ class Game:
             Game.GameTurnStatus.bankruptcy: 'fronts'
         }[self.game_turn_status]
 
+# PRIVATE AUCTION
     def pa_get_uncommitted_cash(self, player_id):
         return self.players[player_id].cash
 
@@ -267,24 +281,12 @@ class Game:
         # Cheapest unpurchased company
         if self.game_turn_status.value not in [0, 1]:
             return False
-        if company.owner:
-            return False
-        for i in self.privates.values():
-            if i.id == company.id:
-                return True
-            if not i.owner:
-                return False
+        return company == self.pa_current_private
 
     def pa_can_buy(self, company):
         if self.game_turn_status.value not in [0]:
             return False
-        if company.owner:
-            return False
-        for i in self.privates.values():
-            if i.id == company.id:
-                return True
-            if not i.owner:
-                return False
+        return company == self.pa_current_private
 
     def pa_can_bid(self, company):
         if self.game_turn_status.value not in [0, 1]:
@@ -294,16 +296,56 @@ class Game:
             for i in self.privates.values():
                 if i.id == company.id:
                     return True
-                if not i.owner:
+                if i.owner is None:
                     return False
 
         return not self.pa_can_pass(company)
 
     def act_pa_pass(self):
-        self.next_pa_player()
+        if self.game_turn_status.value == 0:
+            self.pa_next_buy_player = self.players[(self.pa_next_buy_player.id + 1) % len(self.players)]
+            self.current_player = self.pa_next_buy_player
+        elif self.game_turn_status.value == 1:
+            self.pa_current_private.bids = [i for i in self.pa_current_private.bids if i[0] == self.current_player]
+            if len(self.pa_current_private.bids == 1):
+                bid = self.pa_current_private.bids[-1]
+                self.transfer_cash(bid[1], None, bid[0])
+                self.pa_current_private.owner = bid[0]
+                _pa_continue_waterfall()
 
-    def next_pa_player(self):
-        self.current_player = self.players[(self.current_player.id + 1) % (len(self.players))]
+    def act_pa_bid(self):
+        self.act_pa_pass()
+        # todo do
+
+    def act_pa_buy(self):
+        self.transfer_cash(self.pa_current_private.base_cost, None, self.current_player)
+        self.pa_current_private.owner = self.current_player
+        # Waterfall!
+        self._pa_continue_waterfall()
+        self.pa_next_buy_player = self.players[(self.pa_next_buy_player.id + 1) % len(self.players)]
+        self.current_player = self.pa_next_buy_player
+
+    def _pa_continue_waterfall(self):
+        while self.pa_current_private.owner is not None:
+            self.pa_current_private = next(i for i in self.privates if i.owner is None)
+            if len(self.pa_current_private.bids) == 1:
+                self.transfer_cash(self.pa_current_private.bids[0][1], None, self.pa_current_private.bids[0][0])
+                self.pa_current_private.owner = self.pa_current_private.bids[0][0]
+            elif len(self.pa_current_private.bids) > 1:
+                self._pa_set_next_bidder()
+                return
+
+    def _pa_set_next_bidder(self):
+        bidders = [i[0] for i in self.pa_current_private.bids]
+        high_bidder = i[-1][0]
+        # Remove current high bidder
+        bidders.remove(i[-1][0])
+        check_bidder = high_bidder
+        assert len(bidders) > 0
+        while check_bidder not in bidders:
+            check_bidder = self.players[(check_bidder.id + 1) % len(self.players)]
+        self.current_player = check_bidder
+        self.game_turn_status = Game.GameTurnStatus.private_auction_bid
 
     def get_state(self):
         state = {
@@ -314,6 +356,9 @@ class Game:
             "players": [player.get_state() for player in self.players],
             "bank": self.bank,
             "current_player": self.current_player.id,
+            "privates": [private.get_state() for private in self.privates],
+            "pa_current_private": self.pa_current_private.id,
+            "pa_next_buy_player": self.pa_next_buy_player.id,
         }
         return json.dumps(state)
 
@@ -330,3 +375,7 @@ class Game:
             self.players.append(player)
         self.bank = state["bank"]
         self.current_player = self.players[state["current_player"]]
+        self.pa_next_buy_player = self.players[state["pa_next_buy_player"]]
+        for id, pr_state in enumerate(state["privates"]):
+            self.privates[id].load_state(pr_state, self)
+        self.pa_current_private = next(i for i in self.privates if i.id == state["pa_current_private"])

@@ -47,11 +47,26 @@ def create_game():
     return redirect(url_for("view", game_id=game_id))
 
 # Game play
-
 @app.route('/game/<game_id>/pa/pass')
-def pa_pass(game_id):
+def pa_pass(game_id, game=None):
     state = db.load_game_state(game_id)
     game = Game(state)
     game.act_pa_pass()
+    db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
+    return redirect(url_for("view", game_id=game_id))
+
+@app.route('/game/<game_id>/pa/buy')
+def pa_buy(game_id, game=None):
+    state = db.load_game_state(game_id)
+    game = Game(state)
+    game.act_pa_buy()
+    db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
+    return redirect(url_for("view", game_id=game_id))
+
+@app.route('/game/<game_id>/pa/bid')
+def pa_bid(game_id, game=None):
+    state = db.load_game_state(game_id)
+    game = Game(state)
+    game.act_pa_bid()
     db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
     return redirect(url_for("view", game_id=game_id))

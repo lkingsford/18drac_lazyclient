@@ -86,7 +86,7 @@
   {% endfor %}
   </ul>
   {% endif %}
-  {% for p in game.privates.values() %}
+  {% for p in game.privates %}
     <div class="company_column"><div class="company_card private_card">
       <table>
         <tr>
@@ -101,20 +101,20 @@
         </tr>
       </table>
       {% if p.owner != None %}
-        Owned by {{b.owner.name}}
+        Owned by {{p.owner.name}}
       {% else %}
         {% for b in p.bids %}
         {{b[0].name}} bid {{b[1]}}
         {% endfor %}
       {% endif %}
       {% if game.pa_can_buy(p) %}
-      Buy
+      <form action={{ url_for("pa_buy", game_id=game_id) }}><input type="submit" value="Buy"/></form>
       {% endif %}
       {% if game.pa_can_pass(p) %}
-      <a href={{ url_for("pa_pass", game_id=game_id) }}>Pass</a>
+      <form action={{ url_for("pa_pass", game_id=game_id) }}><input type="submit" value="Pass"/></form>
       {% endif %}
       {% if game.pa_can_bid(p) %}
-      Bid
+      <form action={{ url_for("pa_bid", game_id=game_id) }}><input type="submit" value="Bid"/><input type="text" name="bid_amt" value={{ p.next_bid_amount(game) }}/></form>
       {% endif %}
     </div></div>
   {% endfor %}
