@@ -3,6 +3,7 @@ import json
 import random
 from enum import Enum
 from itertools import chain
+from . import testing_states
 
 def int_or_none(s):
     if s == "":
@@ -202,6 +203,10 @@ class Game:
         # Have to start game externally
 
     def start_game(self, players):
+        if players[0] in testing_states.states:
+            testing_states.states[players[0]](self)
+            return
+
         self.phase = 0
         self.game_turn_status = Game.GameTurnStatus.private_auction_buy_or_bid
         # Randomize players
@@ -354,7 +359,7 @@ class Game:
                 return
             else:
                 self.game_turn_status = Game.GameTurnStatus.private_auction_buy_or_bid
-                self.current_player = self.pa_next_buy_player 
+                self.current_player = self.pa_next_buy_player
 
     def _pa_set_next_bidder(self):
         high_bidder = self.pa_current_private.bids[-1][0]
@@ -370,6 +375,8 @@ class Game:
         self.game_turn_status = Game.GameTurnStatus.first_stock_round
         # This should maybe not be hard coded here
         self.current_player = self.privates[0].owner
+
+# Stock phase
 
     def get_state(self):
         state = {
