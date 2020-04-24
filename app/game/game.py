@@ -46,20 +46,21 @@ class Game:
             self.bids = []
 
         def bid(self, bidder, bid):
+            self.bids = [i for i in self.bids if i[0] != bidder]
             self.bids.append((bidder, bid))
 
         def get_state(self):
             return {
                 'owner': self.owner.id if self.owner is not None else None,
-                'bids': [(i[0], i[1]) for i in self.bids],
+                'bids': [(i[0].id, i[1]) for i in self.bids],
             }
 
         def load_state(self, state, game):
-            self.owner = game.players[state['owner']] if state['owner'] else None
-            self.bids = [i for i in state['bids']]
+            self.owner = game.players[state['owner']] if state['owner'] is not None else None
+            self.bids = [(next(j for j in game.players if j.id == i[0]), i[1]) for i in state['bids']]
 
         def next_min_bid_amount(self, game):
-            return self.bids[-1][1] + game.min_bid_increment
+            return self.bids[-1][1] + game.min_bid_increment if (len(self.bids) > 0) else self.base_cost + game.min_bid_increment
 
     class Company:
         def __init__(self, market, id, display_name, color):
@@ -195,7 +196,7 @@ class Game:
             rules = json.load(rules_file)
             self.starting_cash = rules['starting_cash']
             self.bank_size = rules['bank_size']
-            self.mid_bid_increment = rules['min_bid_increment']
+            self.min_bid_increment = rules['min_bid_increment']
         if load_state:
             self.load_state(load_state)
         # Have to start game externally
@@ -292,8 +293,11 @@ class Game:
         if self.game_turn_status.value not in [0, 1]:
             return False
 
+        if company.owner is not None:
+            return False
+
         if self.game_turn_status.value == 1:
-            for i in self.privates.values():
+            for i in self.privates:
                 if i.id == company.id:
                     return True
                 if i.owner is None:
@@ -306,16 +310,25 @@ class Game:
             self.pa_next_buy_player = self.players[(self.pa_next_buy_player.id + 1) % len(self.players)]
             self.current_player = self.pa_next_buy_player
         elif self.game_turn_status.value == 1:
-            self.pa_current_private.bids = [i for i in self.pa_current_private.bids if i[0] == self.current_player]
-            if len(self.pa_current_private.bids == 1):
+            self.pa_current_private.bids = [i for i in self.pa_current_private.bids if i[0] != self.current_player]
+            if len(self.pa_current_private.bids) == 1:
                 bid = self.pa_current_private.bids[-1]
                 self.transfer_cash(bid[1], None, bid[0])
                 self.pa_current_private.owner = bid[0]
-                _pa_continue_waterfall()
+                self._pa_continue_waterfall()
+            else:
+                self._pa_set_next_bidder()
 
-    def act_pa_bid(self):
-        self.act_pa_pass()
-        # todo do
+    def act_pa_bid(self, bid, private_id):
+        private = next(i for i in self.privates if i.id == private_id)
+        assert bid >= private.next_min_bid_amount(self), "Bid too low"
+        if self.game_turn_status.value == 0:
+            private.bid(self.current_player, bid)
+            self.pa_next_buy_player = self.players[(self.pa_next_buy_player.id + 1) % len(self.players)]
+            self.current_player = self.pa_next_buy_player
+        elif self.game_turn_status.value == 1:
+            private.bid(self.current_player, bid)
+            self._pa_set_next_bidder()
 
     def act_pa_buy(self):
         self.transfer_cash(self.pa_current_private.base_cost, None, self.current_player)
@@ -323,29 +336,40 @@ class Game:
         # Waterfall!
         self._pa_continue_waterfall()
         self.pa_next_buy_player = self.players[(self.pa_next_buy_player.id + 1) % len(self.players)]
-        self.current_player = self.pa_next_buy_player
+        if self.game_turn_status == 0:
+            self.current_player = self.pa_next_buy_player
 
     def _pa_continue_waterfall(self):
         while self.pa_current_private.owner is not None:
-            self.pa_current_private = next(i for i in self.privates if i.owner is None)
+            unowned = [i for i in self.privates if i.owner is None]
+            if len(unowned) == 0:
+                self._pa_finish()
+                return
+            self.pa_current_private = unowned[0]
             if len(self.pa_current_private.bids) == 1:
                 self.transfer_cash(self.pa_current_private.bids[0][1], None, self.pa_current_private.bids[0][0])
                 self.pa_current_private.owner = self.pa_current_private.bids[0][0]
             elif len(self.pa_current_private.bids) > 1:
                 self._pa_set_next_bidder()
                 return
+            else:
+                self.game_turn_status = Game.GameTurnStatus.private_auction_buy_or_bid
+                self.current_player = self.pa_next_buy_player 
 
     def _pa_set_next_bidder(self):
-        bidders = [i[0] for i in self.pa_current_private.bids]
-        high_bidder = i[-1][0]
-        # Remove current high bidder
-        bidders.remove(i[-1][0])
+        high_bidder = self.pa_current_private.bids[-1][0]
+        bidders = [i[0] for i in self.pa_current_private.bids if i[0] != high_bidder]
         check_bidder = high_bidder
         assert len(bidders) > 0
         while check_bidder not in bidders:
             check_bidder = self.players[(check_bidder.id + 1) % len(self.players)]
         self.current_player = check_bidder
         self.game_turn_status = Game.GameTurnStatus.private_auction_bid
+
+    def _pa_finish(self):
+        self.game_turn_status = Game.GameTurnStatus.first_stock_round
+        # This should maybe not be hard coded here
+        self.current_player = self.privates[0].owner
 
     def get_state(self):
         state = {

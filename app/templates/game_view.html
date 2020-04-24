@@ -100,12 +100,14 @@
           <td colspan=2 class="description">{{p.description}}</td>
         </tr>
       </table>
-      {% if p.owner != None %}
+      {% if p.owner is not none %}
         Owned by {{p.owner.name}}
       {% else %}
+      <ul>
         {% for b in p.bids %}
-        {{b[0].name}} bid {{b[1]}}
+        <li>{{b[0].name}} bid {{b[1]}}</li>
         {% endfor %}
+      </ul>
       {% endif %}
       {% if game.pa_can_buy(p) %}
       <form action={{ url_for("pa_buy", game_id=game_id) }}><input type="submit" value="Buy"/></form>
@@ -114,7 +116,7 @@
       <form action={{ url_for("pa_pass", game_id=game_id) }}><input type="submit" value="Pass"/></form>
       {% endif %}
       {% if game.pa_can_bid(p) %}
-      <form action={{ url_for("pa_bid", game_id=game_id) }}><input type="submit" value="Bid"/><input type="text" name="bid_amt" value={{ p.next_bid_amount(game) }}/></form>
+      <form action={{ url_for("pa_bid", game_id=game_id, private_id=p.id) }} method='POST'><input type="submit" value="Bid"/><input type="text" name="bid_amt" value={{ p.next_min_bid_amount(game) }} /></form>
       {% endif %}
     </div></div>
   {% endfor %}
