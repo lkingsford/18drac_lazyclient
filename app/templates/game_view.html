@@ -31,7 +31,13 @@
 {% else %}
 <div id="company_tab" class="tabcontent">
 {% endif %}
-  <h2>Fronts</h2>
+{% if game.sr_show_pass() %}
+Pass stock round
+{% endif %}
+{% if game.sr_show_done() %}
+Done stock round
+{% endif %}
+<h2>Fronts</h2>
     <div class="company_row">
       {% for c in game.companies %}
       <div class="company_column"><div class="company_card">
@@ -49,6 +55,19 @@
             <td colspan=2>Market price {{ game.companies[c].current_price() }}</td>
             <td colspan=2>IPO price: {{ game.companies[c].ipo }}</td>
           </tr>
+          {% endif %}
+
+          {% if game.sr_show_buy_presidents(game.companies[c]) %}
+          Buy president share @
+          {% endif %}
+          {% if game.sr_buy_ipo(game.companies[c]) %}
+          Buy ipo @
+          {% endif %}
+          {% if game.sr_buy_market(game.companies[c]) %}
+          Buy from market @
+          {% endif %}
+          {% if game.sr_show_sell(game.companies[c]) %}
+          Sell to market @
           {% endif %}
         </table>
       </div></div>

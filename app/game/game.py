@@ -19,13 +19,13 @@ class Game:
         private_auction_buy_or_bid = 0
         private_auction_bid = 1
         first_stock_round = 2
-        stock_round = 2
-        operation_clear_track = 3
-        operation_buy_office = 4
-        operation_rampage = 5
-        operation_buy_monsters = 6
-        operation_force_sell_stock_round = 7
-        bankruptcy = 8
+        stock_round = 3
+        operation_clear_track = 4
+        operation_buy_office = 5
+        operation_rampage = 6
+        operation_buy_monsters = 7
+        operation_force_sell_stock_round = 8
+        bankruptcy = 9
 
     class Destination:
         def __init__(self):
@@ -221,6 +221,10 @@ class Game:
         self.pa_next_buy_player = self.players[0]
         self.pa_current_private = self.privates[0]
 
+        self.sr_sold_this_turn = False
+        self.sr_bought_this_turn = False
+        self.priority = players[0]
+
     def transfer_cash(self, quantity, to_party, from_party = None):
         # None = bank
         # transfer_cash(50, player) will transfer 50$ from bank to player
@@ -376,7 +380,51 @@ class Game:
         # This should maybe not be hard coded here
         self.current_player = self.privates[0].owner
 
-# Stock phase
+# STOCK ROUNDS
+    def sr_show_buy_president(self, co):
+        if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
+                                         Game.GameTurnState.stock_round]:
+            return false
+        return not co.started
+
+    def sr_show_buy_ipo(self, co):
+        if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
+                                         Game.GameTurnState.stock_round]:
+            return false
+
+    def sr_show_buy_market(self, co):
+        if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
+                                         Game.GameTurnState.stock_round]:
+            return false
+
+    def sr_show_show_sell(self, co):
+        if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
+                                         Game.GameTurnState.stock_round,
+                                         Game.GameTurnState.operation_force_sell_stock_round]:
+            return false
+        # Must have < 50% in market, and still at least one player with 2
+        # shares after selling
+
+    def sr_show_pass(self):
+        if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round, Game.GameTurnState.stock_round]:
+            return false
+        return not (self.sr_sold_this_turn or self.sr_bought_this_turn)
+
+    def sr_show_done(self):
+        if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round, Game.GameTurnState.stock_round]:
+            return false
+        return self.sr_sold_this_turn or self.sr_bought_this_turn
+
+    def act_sr_done(self):
+        self.priority = self.players[self.current_player.id - 1]
+        self.current_player = self.players[(self.current_player.id) % len(self.players)]
+
+    def act_sr_pass(self):
+        self.current_player = self.players[(self.current_player.id) % len(self.players)]
+        if self.priority == self.current_player:
+            # End of SR
+
+# State
 
     def get_state(self):
         state = {
@@ -390,6 +438,9 @@ class Game:
             "privates": [private.get_state() for private in self.privates],
             "pa_current_private": self.pa_current_private.id,
             "pa_next_buy_player": self.pa_next_buy_player.id,
+            "priority": self.priority.id,
+            "sr_sold_this_turn": self.sr_sold_this_turn,
+            "sr_bought_this_turn": self.sr_bought_this_turn,
         }
         return json.dumps(state)
 
@@ -410,3 +461,6 @@ class Game:
         for id, pr_state in enumerate(state["privates"]):
             self.privates[id].load_state(pr_state, self)
         self.pa_current_private = next(i for i in self.privates if i.id == state["pa_current_private"])
+        self.priority = self.players[state["priority"]]
+        self.sr_sold_this_turn = state["sr_sold_this_turn"]
+        self.sr_bought_this_turn = state["sr_bought_this_turn"]
