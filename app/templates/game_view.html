@@ -56,20 +56,26 @@ Done stock round
             <td colspan=2>IPO price: {{ game.companies[c].ipo }}</td>
           </tr>
           {% endif %}
-
-          {% if game.sr_show_buy_presidents(game.companies[c]) %}
-          Buy president share @
+        </table>
+          {% if game.sr_show_buy_president(game.companies[c]) %}
+          <form action={{ url_for("sr_buy_president", game_id=game_id, company_id=c) }} method='POST'>
+            <input type="submit" value="Buy president at"/>
+            <select id="president_price">
+              {% for ipo in game.market.ipos() %}
+              <option value={{ipo}}>{{ipo}}</option>
+              {% endfor %}
+            </select>
+          </form>
           {% endif %}
-          {% if game.sr_buy_ipo(game.companies[c]) %}
+          {% if game.sr_show_buy_ipo(game.companies[c]) %}
           Buy ipo @
           {% endif %}
-          {% if game.sr_buy_market(game.companies[c]) %}
+          {% if game.sr_show_buy_market(game.companies[c]) %}
           Buy from market @
           {% endif %}
           {% if game.sr_show_sell(game.companies[c]) %}
           Sell to market @
           {% endif %}
-        </table>
       </div></div>
       {% endfor %}
     </div>

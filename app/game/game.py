@@ -64,7 +64,7 @@ class Game:
             return self.bids[-1][1] + game.min_bid_increment if (len(self.bids) > 0) else self.base_cost + game.min_bid_increment
 
     class Company:
-        def __init__(self, market, id, display_name, color):
+        def __init__(self, game, id, display_name, color):
             self.started = False
             self.floated = False
             self.cash = 0
@@ -73,14 +73,20 @@ class Game:
             self.id = id
             self.color = color
             self.ipo = None
-            self.market = market
+            self.market = game.market
+            self.game = game
+            self.owners = []
+            self.president = None
+            self.shares_in_ipo = 0
+            self.shares_in_market = 0
 
-        def start_new_company(self, ipo):
+        def start_new_company(self, ipo, player):
             if ipo not in self.market.ipos():
                 raise Game.GameRuleViolation(f"IPO {ipo} not in market IPOs ({self.market.ipos})")
             self.ipo = ipo
             self.market.ipo_place(self, ipo)
             self.started = True
+            self.adjust_president()
 
         def float(self):
             self.cash = 10 * self.ipo
@@ -95,14 +101,57 @@ class Game:
                     'cash': self.cash,
                     'stations_remaining': self.stations_remaining,
                     'ipo': self.ipo,
+                    'owners': [i.id for i in self.owners],
+                    'president': self.president.id if self.president is not None else None,
+                    'shares_in_ipo': self.shares_in_ipo,
+                    'shares_in_market': self.shares_in_market,
                      }
 
         def load_state(self, state):
             self.started = state['started']
             self.floated = state['floated']
-            self.cash = state['cash']
-            self.stations_remaining = state['stations_remaining']
-            self.ipo = state['ipo']
+            self.cash = int(state['cash'])
+            self.stations_remaining = int(state['stations_remaining'])
+            self.ipo = int(state['ipo']) if state['ipo'] is not None else None
+            self.owners = [game.players[i] for i in state['owners']]
+            self.president = game.players[state['president']] if state['president'] is not None else None
+            self.shares_in_ipo = int(state['shares_in_ipo'])
+            self.shares_in_market = int(state['shares_in_market'])
+
+        def buy_share_ipo(self, player):
+            assert self.shares_in_ipo > 0, "Not enough shares in ipo"
+            assert player.cash > self.ipo
+            # Todo: check share limit
+            self.shares_in_ipo -= 1
+            self.owners.append(player)
+            self.game.transfer_cash(self.ipo, None, player)
+            self.adjust_president()
+
+        def buy_share_market(self, player):
+            assert self.shares_in_market > 0, "Not enough shares in ipo"
+            market_spot = self.market.get_company_spot(self)
+            assert player.cash > market_spot.price
+            # Todo: check share limit
+            self.shares_in_market -= 1
+            self.owners.append(player)
+            self.game.transfer_cash(market_spot.price, None, player)
+            self.adjust_president()
+
+        def sell_share_market(self, player, amount):
+            # Todo: check market share limit
+            self.shares_in_market += amount
+            market_spot = self.market.get_company_spot(self)
+            self.game.transfer_cash(market_spot.price * amount, player)
+
+        def adjust_president(self):
+            counts = [(i, len([j for j in self.owners if j == i])) for i in self.game.players]
+            counts = [(i[0], i[1]) for i in counts if i[1] > len([j for j in self.owners if j == self.president])]
+            if len(counts) > 0:
+                self.president = counts[0]
+
+        def adjust_at_end_of_sr(self):
+            if self.shares_in_market == 0 and self.shares_in_ipo == 0:
+                self.market.all_sold(self)
 
     class Market:
         class StockSpot:
@@ -143,9 +192,52 @@ class Game:
             return spot
 
         def get_spot(self, x, y):
-            spot = self.table[y][x]
+            if (x < 0) or (y < 0):
+                return None
+            try:
+                spot = self.table[y][x]
+            except IndexError:
+                return None
             assert spot.x == x and spot.y == y
             return spot
+
+        def sold_share(self, company, amount):
+            spot = self.get_company_spot(company)
+            for i in range(amount):
+                new_y += 1
+                potential_spot = self.get_spot(spot.x, new_y)
+                if potential_spot is not None:
+                    spot.companies.remove(company)
+                    spot = potential_spot
+                    spot.companies.append(company)
+
+        def all_sold(self, company):
+            spot = self.get_company_spot(company)
+            potential_spot = self.get_spot(spot.x, spot.y - 1)
+            if potential_spot is not None:
+                spot.companies.remove(company)
+                potential_spot.companies.append(company)
+
+        def paid_out(self, company):
+            spot = self.get_company_spot(company)
+            potential_spot = self.get_spot(spot.x + 1, spot.y)
+            if not potential_spot:
+                potential_spot = self.get_spot(spot.x, spot.y - 1)
+            if not potential_spot:
+                return
+            spot.companies.remove(company)
+            potential_spot.companies.append(company)
+
+        def withheld(self, company):
+            spot = self.get_company_spot(company)
+            potential_spot = self.get_spot(spot.x - 1, spot.y)
+            if not potential_spot:
+                potential_spot = self.get_spot(spot.x, spot.y + 1)
+            if not potential_spot:
+                return
+            # TODO: Bankrupt?
+            spot.companies.remove(company)
+            potential_spot.companies.append(company)
 
         def get_state(self):
             occupied = [i for i in chain.from_iterable(self.table) if i and i.companies]
@@ -223,7 +315,7 @@ class Game:
 
         self.sr_sold_this_turn = False
         self.sr_bought_this_turn = False
-        self.priority = players[0]
+        self.priority = self.players[0]
 
     def transfer_cash(self, quantity, to_party, from_party = None):
         # None = bank
@@ -263,7 +355,7 @@ class Game:
             home.stations.append(company[0])
 
     def load_companies(self, companies):
-        self.companies = {i[0]: Game.Company(self.market, i[0], i[1], i[4]) for i in companies}
+        self.companies = {i[0]: Game.Company(self, i[0], i[1], i[4]) for i in companies}
 
     def load_privates(self, privates):
         self.privates = [Game.PrivateCompany(i[0], i[1], int(i[2]), int(i[3]), i[5]) for i in privates]
@@ -379,40 +471,40 @@ class Game:
         self.game_turn_status = Game.GameTurnStatus.first_stock_round
         # This should maybe not be hard coded here
         self.current_player = self.privates[0].owner
+        self.priority = self.current_player
 
 # STOCK ROUNDS
     def sr_show_buy_president(self, co):
         if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
-                                         Game.GameTurnState.stock_round]:
-            return false
+                                         Game.GameTurnStatus.stock_round]:
+            return False
         return not co.started
 
     def sr_show_buy_ipo(self, co):
         if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
-                                         Game.GameTurnState.stock_round]:
-            return false
+                                         Game.GameTurnStatus.stock_round]:
+            return False
 
     def sr_show_buy_market(self, co):
         if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
-                                         Game.GameTurnState.stock_round]:
-            return false
+                                         Game.GameTurnStatus.stock_round]:
+            return False
 
-    def sr_show_show_sell(self, co):
-        if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
-                                         Game.GameTurnState.stock_round,
-                                         Game.GameTurnState.operation_force_sell_stock_round]:
-            return false
+    def sr_show_sell(self, co):
+        if self.game_turn_status not in [Game.GameTurnStatus.stock_round,
+                                         Game.GameTurnStatus.operation_force_sell_stock_round]:
+            return False
         # Must have < 50% in market, and still at least one player with 2
         # shares after selling
 
     def sr_show_pass(self):
-        if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round, Game.GameTurnState.stock_round]:
-            return false
+        if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round, Game.GameTurnStatus.stock_round]:
+            return False
         return not (self.sr_sold_this_turn or self.sr_bought_this_turn)
 
     def sr_show_done(self):
-        if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round, Game.GameTurnState.stock_round]:
-            return false
+        if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round, Game.GameTurnStatus.stock_round]:
+            return False
         return self.sr_sold_this_turn or self.sr_bought_this_turn
 
     def act_sr_done(self):
@@ -423,6 +515,21 @@ class Game:
         self.current_player = self.players[(self.current_player.id) % len(self.players)]
         if self.priority == self.current_player:
             # End of SR
+            self.sr_finish()
+
+    def act_sr_buy_president(self, company_id, ipo_price):
+        co = self.companies[company_id]
+        co.start_new_company(ipo_price, self.current_player)
+        self.priority = self.players[self.current_player.id - 1]
+
+    def sr_finish(self):
+        for c in self.companies:
+            c.adjust_at_end_of_sr()
+            self.or_start()
+
+# OR
+    def or_start(self):
+        pass
 
 # State
 

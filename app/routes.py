@@ -70,4 +70,14 @@ def pa_bid(game_id, private_id):
     bid = int(request.form.get("bid_amt"))
     game.act_pa_bid(bid, private_id)
     db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
+    return redirect(url_for("view", game_id=game_id))@app.route('/game/<game_id>/pa/buy')
+
+@app.route('/game/<game_id>/<company_id>/start/', methods=['POST'])
+def sr_buy_president(game_id, company_id):
+    state = db.load_game_state(game_id)
+    game = Game(state)
+    ipo_price = int(request.form.get('president_price'))
+    game.act_sr_buy_president(company_id, ipo_price)
+    db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
     return redirect(url_for("view", game_id=game_id))
+
