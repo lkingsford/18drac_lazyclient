@@ -79,6 +79,7 @@ class Game:
             self.president = None
             self.shares_in_ipo = 0
             self.shares_in_market = 0
+            self.sr_sellers = []
 
         def start_new_company(self, ipo, player):
             if ipo not in self.market.ipos():
@@ -86,7 +87,10 @@ class Game:
             self.ipo = ipo
             self.market.ipo_place(self, ipo)
             self.started = True
-            self.adjust_president()
+            self.shares_in_ipo = 10
+            self.president = player
+            self.buy_share_ipo(player)
+            self.buy_share_ipo(player)
 
         def float(self):
             self.cash = 10 * self.ipo
@@ -102,6 +106,7 @@ class Game:
                     'stations_remaining': self.stations_remaining,
                     'ipo': self.ipo,
                     'owners': [i.id for i in self.owners],
+                    'sr_sellers': [i.id for i in self.sr_sellers],
                     'president': self.president.id if self.president is not None else None,
                     'shares_in_ipo': self.shares_in_ipo,
                     'shares_in_market': self.shares_in_market,
@@ -113,14 +118,16 @@ class Game:
             self.cash = int(state['cash'])
             self.stations_remaining = int(state['stations_remaining'])
             self.ipo = int(state['ipo']) if state['ipo'] is not None else None
-            self.owners = [game.players[i] for i in state['owners']]
-            self.president = game.players[state['president']] if state['president'] is not None else None
+            self.owners = [self.game.players[i] for i in state['owners']]
+            self.sr_sellers = [self.game.players[i] for i in state['sr_sellers']]
+            self.president = self.game.players[state['president']] if state['president'] is not None else None
             self.shares_in_ipo = int(state['shares_in_ipo'])
             self.shares_in_market = int(state['shares_in_market'])
 
         def buy_share_ipo(self, player):
             assert self.shares_in_ipo > 0, "Not enough shares in ipo"
             assert player.cash > self.ipo
+            assert player not in self.sr_sellers, f"{player.name} already sold this SR"
             # Todo: check share limit
             self.shares_in_ipo -= 1
             self.owners.append(player)
@@ -128,7 +135,8 @@ class Game:
             self.adjust_president()
 
         def buy_share_market(self, player):
-            assert self.shares_in_market > 0, "Not enough shares in ipo"
+            assert self.shares_in_market > 0, "Not enough shares in market"
+            assert player not in self.sr_sellers, f"{player.name} already sold this SR"
             market_spot = self.market.get_company_spot(self)
             assert player.cash > market_spot.price
             # Todo: check share limit
@@ -139,19 +147,52 @@ class Game:
 
         def sell_share_market(self, player, amount):
             # Todo: check market share limit
+            assert amount in self.player_can_sell(player), f"Player can sell {self.player_can_sell(player)} shares"
+
             self.shares_in_market += amount
             market_spot = self.market.get_company_spot(self)
             self.game.transfer_cash(market_spot.price * amount, player)
+            self.sr_sellers.append(player)
+            for i in range(amount):
+                self.owners.remove(player)
+            self.adjust_president()
 
         def adjust_president(self):
             counts = [(i, len([j for j in self.owners if j == i])) for i in self.game.players]
-            counts = [(i[0], i[1]) for i in counts if i[1] > len([j for j in self.owners if j == self.president])]
+            max_owned = max([i[1] for i in counts])
+            counts = [(i[0], i[1]) for i in counts if i[1] >= max_owned]
             if len(counts) > 0:
-                self.president = counts[0]
+                candidate = self.game.players[(self.president.id) % len(self.game.players)]
+                while candidate not in [i[0] for i in counts]:
+                    candidate = self.game.players[(candidate.id + 1) % len(self.game.players)]
+                self.president = candidate
 
         def adjust_at_end_of_sr(self):
-            if self.shares_in_market == 0 and self.shares_in_ipo == 0:
+            if self.started and \
+               self.shares_in_market == 0 and \
+               self.shares_in_ipo == 0:
                 self.market.all_sold(self)
+            self.sr_sellers = []
+
+        def no_next_president(self):
+            counts = [(i, len([j for j in self.owners if j == i])) for i in self.game.players]
+            counts = [(i[0], i[1]) for i in counts if i[1] >= 2]
+            return len(counts) == 1
+
+        def player_can_sell(self, player):
+            player_owns = len([i for i in self.owners if i == player])
+            if (self.president == player) and (self.no_next_president()):
+                player_owns -= 2
+            if player_owns <= 0:
+                return []
+            max_sell = min((5 - self.shares_in_market), player_owns)
+            return list(range(1, max_sell + 1))
+
+        def players_holdings(self):
+            counts = [(i, len([j for j in self.owners if j == i])) for i in self.game.players]
+            counts = [(i[0], i[1]) for i in counts if i[1] > 0]
+            return counts
+
 
     class Market:
         class StockSpot:
@@ -472,30 +513,60 @@ class Game:
         # This should maybe not be hard coded here
         self.current_player = self.privates[0].owner
         self.priority = self.current_player
+        self.sr_start = True
 
 # STOCK ROUNDS
     def sr_show_buy_president(self, co):
         if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
                                          Game.GameTurnStatus.stock_round]:
             return False
-        return not co.started
+        if self.sr_bought_this_turn:
+            return False
+        if co.started:
+            return False
+        if self.current_player.cash < min(self.market.ipos()):
+            return False
+        return True
 
     def sr_show_buy_ipo(self, co):
         if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
                                          Game.GameTurnStatus.stock_round]:
             return False
+        if self.sr_bought_this_turn:
+            return False
+        if co.shares_in_ipo == 0:
+            return False
+        if self.current_player.cash < co.ipo:
+            return False
+        if self.current_player in co.sr_sellers:
+            return False
+        return True
 
     def sr_show_buy_market(self, co):
         if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
                                          Game.GameTurnStatus.stock_round]:
             return False
+        if self.sr_bought_this_turn:
+            return False
+        if co.shares_in_market == 0:
+            return False
+        if self.current_player.cash < co.current_price():
+            return False
+        if self.current_player in co.sr_sellers:
+            return False
+        return True
 
     def sr_show_sell(self, co):
         if self.game_turn_status not in [Game.GameTurnStatus.stock_round,
                                          Game.GameTurnStatus.operation_force_sell_stock_round]:
             return False
-        # Must have < 50% in market, and still at least one player with 2
-        # shares after selling
+        if co.shares_in_market >= 5:
+            return False
+        if len([i for i in co.owners if i == self.current_player]) == 0:
+            return False
+        if co.president == self.current_player and co.no_next_president():
+            return False
+        return True
 
     def sr_show_pass(self):
         if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round, Game.GameTurnStatus.stock_round]:
@@ -509,27 +580,59 @@ class Game:
 
     def act_sr_done(self):
         self.priority = self.players[self.current_player.id - 1]
-        self.current_player = self.players[(self.current_player.id) % len(self.players)]
+        self.current_player = self.players[(self.current_player.id + 1) % len(self.players)]
+        self.sr_bought_this_turn = False
+        self.sr_sold_this_turn = False
+        if self.sr_start:
+            self.sr_start = False
 
     def act_sr_pass(self):
-        self.current_player = self.players[(self.current_player.id) % len(self.players)]
-        if self.priority == self.current_player:
+        assert not self.sr_bought_this_turn, "Player has already bought a share this turn"
+        assert not self.sr_sold_this_turn, "Player has already sold share[s] this turn"
+        if not self.sr_start and (self.priority == self.current_player):
             # End of SR
             self.sr_finish()
+        if self.sr_start:
+            self.sr_start = False
+        self.current_player = self.players[(self.current_player.id + 1) % len(self.players)]
 
     def act_sr_buy_president(self, company_id, ipo_price):
+        assert not self.sr_bought_this_turn, "Player has already bought a share this turn"
         co = self.companies[company_id]
         co.start_new_company(ipo_price, self.current_player)
-        self.priority = self.players[self.current_player.id - 1]
+        self.sr_bought_this_turn = True
+        if self.game_turn_status == Game.GameTurnStatus.first_stock_round:
+            self.act_sr_done()
+
+    def act_sr_buy_ipo(self, company_id):
+        assert not self.sr_bought_this_turn, "Player has already bought a share this turn"
+        co = self.companies[company_id]
+        co.buy_share_ipo(self.current_player)
+        self.sr_bought_this_turn = True
+        if self.game_turn_status == Game.GameTurnStatus.first_stock_round:
+            self.act_sr_done()
+
+    def act_sr_buy_market(self, company_id):
+        assert not self.sr_bought_this_turn, "Player has already bought a share this turn"
+        co = self.companies[company_id]
+        co.buy_share_market(self.current_player)
+        self.sr_bought_this_turn = True
+
+    def act_sr_sell(self, company_id, qty):
+        co = self.companies[company_id]
+        co.sell_share_market(self.current_player, qty)
+        self.sr_sold_this_turn = True
 
     def sr_finish(self):
-        for c in self.companies:
+        for c in self.companies.values():
             c.adjust_at_end_of_sr()
-            self.or_start()
+        self.or_start()
 
 # OR
     def or_start(self):
-        pass
+        self.game_turn_status = Game.GameTurnStatus.stock_round
+        self.current_player = self.priority
+        self.sr_start = True
 
 # State
 
@@ -548,6 +651,7 @@ class Game:
             "priority": self.priority.id,
             "sr_sold_this_turn": self.sr_sold_this_turn,
             "sr_bought_this_turn": self.sr_bought_this_turn,
+            "sr_start": self.sr_start,
         }
         return json.dumps(state)
 
@@ -556,12 +660,12 @@ class Game:
         self.phase = state["phase"]
         self.game_turn_status = Game.GameTurnStatus(state["game_turn_status"])
         self.market.load_state(state["market"], self.companies)
-        for id, co_state in state["companies"].items():
-            self.companies[id].load_state(co_state)
         for player_state in state["players"]:
             player = Game.Player()
             player.load_state(player_state)
             self.players.append(player)
+        for id, co_state in state["companies"].items():
+            self.companies[id].load_state(co_state)
         self.bank = state["bank"]
         self.current_player = self.players[state["current_player"]]
         self.pa_next_buy_player = self.players[state["pa_next_buy_player"]]
@@ -571,3 +675,4 @@ class Game:
         self.priority = self.players[state["priority"]]
         self.sr_sold_this_turn = state["sr_sold_this_turn"]
         self.sr_bought_this_turn = state["sr_bought_this_turn"]
+        self.sr_start = state["sr_start"]

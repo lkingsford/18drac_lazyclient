@@ -81,3 +81,46 @@ def sr_buy_president(game_id, company_id):
     db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
     return redirect(url_for("view", game_id=game_id))
 
+@app.route('/game/<game_id>/<company_id>/buy_ipo/', methods=['POST'])
+def sr_buy_ipo(game_id, company_id):
+    state = db.load_game_state(game_id)
+    game = Game(state)
+    game.act_sr_buy_ipo(company_id)
+    db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
+    return redirect(url_for("view", game_id=game_id))
+
+@app.route('/game/<game_id>/<company_id>/buy_market/', methods=['POST'])
+def sr_buy_market(game_id, company_id):
+    state = db.load_game_state(game_id)
+    game = Game(state)
+    game.act_sr_buy_market(company_id)
+    db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
+    return redirect(url_for("view", game_id=game_id))
+
+@app.route('/game/<game_id>/<company_id>/sell/', methods=['POST'])
+def sr_sell(game_id, company_id):
+    state = db.load_game_state(game_id)
+    game = Game(state)
+    amount = int(request.form.get('qty'))
+    game.act_sr_sell(company_id, amount)
+    db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
+    return redirect(url_for("view", game_id=game_id))
+
+@app.route('/game/<game_id>/sr_pass/', methods=['POST'])
+def sr_pass(game_id):
+    state = db.load_game_state(game_id)
+    game = Game(state)
+    game.act_sr_pass()
+    db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
+    return redirect(url_for("view", game_id=game_id))
+
+@app.route('/game/<game_id>/sr_done/', methods=['POST'])
+def sr_done(game_id):
+    state = db.load_game_state(game_id)
+    game = Game(state)
+    game.act_sr_done()
+    db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
+    return redirect(url_for("view", game_id=game_id))
+
+
+

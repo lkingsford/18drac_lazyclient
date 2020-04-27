@@ -32,10 +32,14 @@
 <div id="company_tab" class="tabcontent">
 {% endif %}
 {% if game.sr_show_pass() %}
-Pass stock round
+<form action={{ url_for("sr_pass", game_id=game_id) }} method='POST'>
+  <input type="submit" value="Pass"/>
+</form>
 {% endif %}
 {% if game.sr_show_done() %}
-Done stock round
+<form action={{ url_for("sr_done", game_id=game_id) }} method='POST'>
+  <input type="submit" value="Done"/>
+</form>
 {% endif %}
 <h2>Fronts</h2>
     <div class="company_row">
@@ -54,27 +58,64 @@ Done stock round
             <td></td>
             <td colspan=2>Market price {{ game.companies[c].current_price() }}</td>
             <td colspan=2>IPO price: {{ game.companies[c].ipo }}</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td> President: </td>
+            <td colspan=4> {{ game.companies[c].president.name }} </td>
+          </tr>
+            <td> Stock holdings: </td>
+            <td colspan=4>
+              <ul>
+                {% for p in game.companies[c].players_holdings() %}
+                  <li> {{p[0].name}}: {{p[1]}} shares </li>
+                {% endfor %}
+                {% if game.companies[c].shares_in_market > 0 %}
+                  <li> {{ game.companies[c].shares_in_market }} shares in market </li>
+                {% endif %}
+              </ul>
+            </td>
           </tr>
           {% endif %}
         </table>
           {% if game.sr_show_buy_president(game.companies[c]) %}
           <form action={{ url_for("sr_buy_president", game_id=game_id, company_id=c) }} method='POST'>
             <input type="submit" value="Buy president at"/>
-            <select id="president_price">
+            <select id="president_price" name="president_price">
               {% for ipo in game.market.ipos() %}
+              {% if ipo == game.market.ipos()[0] %}
+              <option value={{ipo}} selected>{{ipo}}</option>
+              {% else %}
               <option value={{ipo}}>{{ipo}}</option>
+              {% endif %}
               {% endfor %}
             </select>
           </form>
           {% endif %}
           {% if game.sr_show_buy_ipo(game.companies[c]) %}
-          Buy ipo @
+            <form action={{ url_for("sr_buy_ipo", game_id=game_id, company_id=c) }} method='POST'>
+              <input type="submit" value="Buy IPO Share"/>
+            </form>
           {% endif %}
           {% if game.sr_show_buy_market(game.companies[c]) %}
-          Buy from market @
+            <form action={{ url_for("sr_buy_market", game_id=game_id, company_id=c) }} method='POST'>
+              <input type="submit" value="Buy Market Share"/>
+            </form>
           {% endif %}
           {% if game.sr_show_sell(game.companies[c]) %}
-          Sell to market @
+            <form action={{ url_for("sr_sell", game_id=game_id, company_id=c) }} method='POST'>
+              <input type="submit" value="Sell"/>
+              <select id="qty" name="qty">
+                {% for qty in game.companies[c].player_can_sell(game.current_player) %}
+                {% if loop.index0 == 0  %}
+                <option value={{qty}} selected>{{qty}}</option>
+                {% else %}
+                <option value={{qty}}>{{qty}}</option>
+                {% endif %}
+                {% endfor %}
+              </select>
+            </form>
+            shares
           {% endif %}
       </div></div>
       {% endfor %}
@@ -95,6 +136,7 @@ Done stock round
       </div></div>
       {% endfor %}
     </div>
+    <h2>Priority: {{ game.priority.name }}</h2>
     <h2>Bank: {{ game.bank }}</h2>
   </div>
 
