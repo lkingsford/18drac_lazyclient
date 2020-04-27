@@ -23,7 +23,8 @@
 </div>
 
 <div id="market_tab" class="tabcontent">
-<object type="image/svg+xml" data={{url_for("market", game_id=game_id)}}></object>
+{# Hash is to ensure reload #}
+<object type="image/svg+xml" data={{url_for("market", game_id=game_id, hash=game.market.get_hash())}}></object>
 </div>
 
 {% if game.start_on() == 'fronts' %}

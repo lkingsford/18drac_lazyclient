@@ -124,6 +124,7 @@ class Game:
             self.shares_in_ipo = int(state['shares_in_ipo'])
             self.shares_in_market = int(state['shares_in_market'])
 
+
         def buy_share_ipo(self, player):
             assert self.shares_in_ipo > 0, "Not enough shares in ipo"
             assert player.cash > self.ipo
@@ -155,6 +156,7 @@ class Game:
             self.sr_sellers.append(player)
             for i in range(amount):
                 self.owners.remove(player)
+            self.market.sold_share(self, amount)
             self.adjust_president()
 
         def adjust_president(self):
@@ -244,6 +246,7 @@ class Game:
 
         def sold_share(self, company, amount):
             spot = self.get_company_spot(company)
+            new_y = spot.y
             for i in range(amount):
                 new_y += 1
                 potential_spot = self.get_spot(spot.x, new_y)
@@ -291,6 +294,10 @@ class Game:
                 y = int(y)
                 spot = self.get_spot(x, y)
                 spot.companies = [companies[i] for i in value]
+
+        def get_hash(self):
+            return hash(json.dumps(self.get_state()))
+
 
     class Player():
         def __init__(self, id = 0, name = None):
@@ -513,7 +520,6 @@ class Game:
         # This should maybe not be hard coded here
         self.current_player = self.privates[0].owner
         self.priority = self.current_player
-        self.sr_start = True
 
 # STOCK ROUNDS
     def sr_show_buy_president(self, co):
@@ -583,18 +589,15 @@ class Game:
         self.current_player = self.players[(self.current_player.id + 1) % len(self.players)]
         self.sr_bought_this_turn = False
         self.sr_sold_this_turn = False
-        if self.sr_start:
-            self.sr_start = False
 
     def act_sr_pass(self):
         assert not self.sr_bought_this_turn, "Player has already bought a share this turn"
         assert not self.sr_sold_this_turn, "Player has already sold share[s] this turn"
-        if not self.sr_start and (self.priority == self.current_player):
+        if self.priority == self.players[self.current_player.id - 1]:
             # End of SR
             self.sr_finish()
-        if self.sr_start:
-            self.sr_start = False
-        self.current_player = self.players[(self.current_player.id + 1) % len(self.players)]
+        else:
+            self.current_player = self.players[(self.current_player.id + 1) % len(self.players)]
 
     def act_sr_buy_president(self, company_id, ipo_price):
         assert not self.sr_bought_this_turn, "Player has already bought a share this turn"
@@ -632,7 +635,6 @@ class Game:
     def or_start(self):
         self.game_turn_status = Game.GameTurnStatus.stock_round
         self.current_player = self.priority
-        self.sr_start = True
 
 # State
 
@@ -651,7 +653,6 @@ class Game:
             "priority": self.priority.id,
             "sr_sold_this_turn": self.sr_sold_this_turn,
             "sr_bought_this_turn": self.sr_bought_this_turn,
-            "sr_start": self.sr_start,
         }
         return json.dumps(state)
 
@@ -675,4 +676,3 @@ class Game:
         self.priority = self.players[state["priority"]]
         self.sr_sold_this_turn = state["sr_sold_this_turn"]
         self.sr_bought_this_turn = state["sr_bought_this_turn"]
-        self.sr_start = state["sr_start"]
