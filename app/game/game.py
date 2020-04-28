@@ -134,6 +134,8 @@ class Game:
             self.owners.append(player)
             self.game.transfer_cash(self.ipo, None, player)
             self.adjust_president()
+            if not self.floated and len(self.owners) >= 6:
+                self.float()
 
         def buy_share_market(self, player):
             assert self.shares_in_market > 0, "Not enough shares in market"
@@ -239,9 +241,10 @@ class Game:
                 return None
             try:
                 spot = self.table[y][x]
+                if spot:
+                    assert spot.x == x and spot.y == y
             except IndexError:
                 return None
-            assert spot.x == x and spot.y == y
             return spot
 
         def sold_share(self, company, amount):
@@ -530,7 +533,7 @@ class Game:
             return False
         if co.started:
             return False
-        if self.current_player.cash < min(self.market.ipos()):
+        if self.current_player.cash < (min(self.market.ipos()) * 2):
             return False
         return True
 

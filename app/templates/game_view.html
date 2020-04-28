@@ -84,10 +84,12 @@
             <input type="submit" value="Buy president at"/>
             <select id="president_price" name="president_price">
               {% for ipo in game.market.ipos() %}
-              {% if ipo == game.market.ipos()[0] %}
-              <option value={{ipo}} selected>{{ipo}}</option>
-              {% else %}
-              <option value={{ipo}}>{{ipo}}</option>
+              {% if game.current_player.cash >= (ipo * 2) %}
+                {% if ipo == game.market.ipos()[0] %}
+                <option value={{ipo}} selected>{{ipo}}</option>
+                {% else %}
+                <option value={{ipo}}>{{ipo}}</option>
+                {% endif %}
               {% endif %}
               {% endfor %}
             </select>
