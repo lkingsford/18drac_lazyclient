@@ -179,6 +179,7 @@ class Game:
 
         def adjust_at_end_of_sr(self):
             if self.started and \
+               self.public and \
                self.shares_in_market == 0 and \
                self.shares_in_ipo == 0:
                 self.market.all_sold(self)
@@ -453,9 +454,9 @@ class Game:
             Game.GameTurnStatus.private_auction_bid: 'AA',
             Game.GameTurnStatus.first_stock_round: 'SR1',
             Game.GameTurnStatus.stock_round: f'SR{self.turn_number}',
-            Game.GameTurnStatus.operation_clear_track: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.id} (Clear Track)',
-            Game.GameTurnStatus.operation_buy_office: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.id} (Buy Office)',
-            Game.GameTurnStatus.operation_rampage: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.id} (RAMPAGE!)',
+            Game.GameTurnStatus.operation_clear_track: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.id if self.or_co else ""} (Clear Track)',
+            Game.GameTurnStatus.operation_buy_office: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.id if self.or_co else ""} (Buy Office)',
+            Game.GameTurnStatus.operation_rampage: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.id if self.or_co else ""} (RAMPAGE!)',
             # todo: change once there's a monster screen
             Game.GameTurnStatus.operation_buy_monsters: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} (Buy monsters)',
             Game.GameTurnStatus.operation_force_sell_stock_round: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} (Force sell)',
@@ -533,10 +534,10 @@ class Game:
     def act_pa_buy(self):
         self.transfer_cash(self.pa_current_private.base_cost, None, self.current_player)
         self.pa_current_private.owner = self.current_player
+        self.pa_next_buy_player = self.players[(self.pa_next_buy_player.id + 1) % len(self.players)]
         # Waterfall!
         self._pa_continue_waterfall()
         if self.game_turn_status == 0:
-            self.pa_next_buy_player = self.players[(self.pa_next_buy_player.id + 1) % len(self.players)]
             self.current_player = self.pa_next_buy_player
 
     def _pa_continue_waterfall(self):
@@ -569,6 +570,22 @@ class Game:
     def _pa_finish(self):
         # This should maybe not be hard coded here
         self.priority = self.privates[0].owner
+        # Start special privates
+        ll = next(i for i in self.privates if i.id == 'll')
+        self.companies['ll'].president = ll.owner
+        self.companies['ll'].started = True
+        self.companies['ll'].floated = True
+        self.companies['ll'].cash = 30
+        # Add nurses
+        ll.open = False
+
+        bt = next(i for i in self.privates if i.id == 'bt')
+        self.companies['bt'].president = bt.owner
+        self.companies['bt'].started = True
+        self.companies['bt'].floated = True
+        # Add monster
+        bt.open = False
+
         self.increment_phase()
         self.sr_start()
 
@@ -711,14 +728,16 @@ class Game:
             self.sr_start()
         for co in self.companies.values():
             co.acted_this_or = False
-        if any([i.floated for i in self.companies.values()]):
-            self.or_next_co()
-        else:
-            self.sr_start()
+        self.or_next_co()
 
     def or_next_co(self):
         # Next company in this sub turn
-        next_co = self.market.next_company()
+        if not self.companies['ll'].acted_this_or:
+            next_co = self.companies['ll']
+        elif not self.companies['bt'].acted_this_or:
+            next_co = self.companies['bt']
+        else:
+            next_co = self.market.next_company()
         if next_co:
             self.or_co = next_co
             self.current_player = self.or_co.president

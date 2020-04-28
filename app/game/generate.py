@@ -177,7 +177,7 @@ def generate_market(game):
                     imgsize = 26
                     x = (1 + cell[0]) * scale - imgsize
                     y = (number) * scale / 5 + row[0] * scale
-                    image = company.id + ("" if company.floated else "_flip")
+                    image = company.id + ("" if (company.floated and not company.acted_this_or) else "_flip")
                     display.add(display.image(href=images()[image][1],
                                             insert=(x, y),
                                             size=(imgsize, imgsize)))
