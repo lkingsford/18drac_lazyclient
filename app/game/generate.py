@@ -83,7 +83,7 @@ def generate_map(game):
                         image = 'CitySpace'
                         if len(destination.stations) > station:
                             co = destination.stations[station]
-                            started = game.companies[co].started
+                            started = game.companies[co].floated
                             image = co + ("" if started else "_flip")
                         label += f"<TD fixedsize='true'><IMG SRC='{(images()[image])[0]}'/></TD>"
                 label += "</TR></TABLE></TD></TR>"
