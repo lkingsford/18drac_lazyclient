@@ -14,14 +14,13 @@ def fake_stock_1(game):
 def fake_or_1(game):
     fake_stock_1(game)
     game.act_sr_pass()
-    game.act_sr_buy_president('ss', 100)
-    game.act_sr_buy_president('ett', 100)
+    game.act_sr_buy_president('ss', 67)
+    game.act_sr_buy_president('ett', 73)
     game.act_sr_buy_president('gs', 67)
     for i in ['ss', 'ss', 'ss', 'ss', 'ett', 'ett', 'ett', 'ett', 'gs', 'gs', 'gs', 'gs']:
-        if game.sr_show_buy_ipo(game.companies[i]):
-            game.act_sr_buy_ipo(i)
-        else:
+        while not game.sr_show_buy_ipo(game.companies[i]):
             game.act_sr_pass()
+        game.act_sr_buy_ipo(i)
     for i in range(4):
         game.act_sr_pass()
 
