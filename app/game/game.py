@@ -124,7 +124,6 @@ class Game:
             self.shares_in_ipo = int(state['shares_in_ipo'])
             self.shares_in_market = int(state['shares_in_market'])
 
-
         def buy_share_ipo(self, player):
             assert self.shares_in_ipo > 0, "Not enough shares in ipo"
             assert player.cash > self.ipo
@@ -679,3 +678,6 @@ class Game:
         self.priority = self.players[state["priority"]]
         self.sr_sold_this_turn = state["sr_sold_this_turn"]
         self.sr_bought_this_turn = state["sr_bought_this_turn"]
+
+    def get_hash(self):
+        return hash(self.get_state())

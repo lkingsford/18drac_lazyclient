@@ -19,7 +19,7 @@
 {% else %}
 <div id="map_tab" class="tabcontent">
 {% endif %}
-<object type="image/svg+xml" data={{url_for("map_image", game_id=game_id)}}></object>
+<object type="image/svg+xml" data={{url_for("map_image", game_id=game_id, hash=game.get_hash())}}></object>
 </div>
 
 <div id="market_tab" class="tabcontent">
