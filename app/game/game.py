@@ -64,7 +64,7 @@ class Game:
             return self.bids[-1][1] + game.min_bid_increment if (len(self.bids) > 0) else self.base_cost + game.min_bid_increment
 
     class Company:
-        def __init__(self, game, id, display_name, color):
+        def __init__(self, game, id, display_name, private, color):
             self.started = False
             self.floated = False
             self.cash = 0
@@ -80,6 +80,8 @@ class Game:
             self.shares_in_ipo = 0
             self.shares_in_market = 0
             self.sr_sellers = []
+            self.acted_this_or = False
+            self.public = private == "public"
 
         def start_new_company(self, ipo, player):
             if ipo not in self.market.ipos():
@@ -110,6 +112,7 @@ class Game:
                     'president': self.president.id if self.president is not None else None,
                     'shares_in_ipo': self.shares_in_ipo,
                     'shares_in_market': self.shares_in_market,
+                    'acted_this_or': self.acted_this_or,
                      }
 
         def load_state(self, state):
@@ -123,6 +126,7 @@ class Game:
             self.president = self.game.players[state['president']] if state['president'] is not None else None
             self.shares_in_ipo = int(state['shares_in_ipo'])
             self.shares_in_market = int(state['shares_in_market'])
+            self.acted_this_or = int(state['acted_this_or'])
 
         def buy_share_ipo(self, player):
             assert self.shares_in_ipo > 0, "Not enough shares in ipo"
@@ -300,6 +304,13 @@ class Game:
         def get_hash(self):
             return hash(json.dumps(self.get_state()))
 
+        def next_company(self):
+            # Resolve highest price to lowest, then right to left, then top of stack to end
+           all_spots = [i for i in chain.from_iterable(self.table) if i is not None and len([j for j in i.companies if not j.acted_this_or])]
+           if len(all_spots) == 0:
+               return None
+           highest_spot = max(all_spots, key=lambda i: i.price + i.x / 100)
+           return next(iter([i for i in highest_spot.companies if not i.acted_this_or]))
 
     class Player():
         def __init__(self, id = 0, name = None):
@@ -340,6 +351,10 @@ class Game:
             self.starting_cash = rules['starting_cash']
             self.bank_size = rules['bank_size']
             self.min_bid_increment = rules['min_bid_increment']
+        self.turn_number = 0
+        self.ors_this_turn = 0
+        self.or_subnumber = 0
+        self.or_co = None
         if load_state:
             self.load_state(load_state)
         # Have to start game externally
@@ -366,6 +381,10 @@ class Game:
         self.sr_sold_this_turn = False
         self.sr_bought_this_turn = False
         self.priority = self.players[0]
+        self.turn_number = 0
+        self.ors_this_turn = 0
+        self.or_subnumber = 0
+        self.or_co = None
 
     def transfer_cash(self, quantity, to_party, from_party = None):
         # None = bank
@@ -405,7 +424,7 @@ class Game:
             home.stations.append(company[0])
 
     def load_companies(self, companies):
-        self.companies = {i[0]: Game.Company(self, i[0], i[1], i[4]) for i in companies}
+        self.companies = {i[0]: Game.Company(self, i[0], i[1], i[3], i[4]) for i in companies}
 
     def load_privates(self, privates):
         self.privates = [Game.PrivateCompany(i[0], i[1], int(i[2]), int(i[3]), i[5]) for i in privates]
@@ -424,6 +443,33 @@ class Game:
             Game.GameTurnStatus.operation_force_sell_stock_round: 'fronts',
             Game.GameTurnStatus.bankruptcy: 'fronts'
         }[self.game_turn_status]
+
+    def round_name(self):
+        return {
+            Game.GameTurnStatus.private_auction_buy_or_bid: 'AA',
+            Game.GameTurnStatus.private_auction_bid: 'AA',
+            Game.GameTurnStatus.first_stock_round: 'SR1',
+            Game.GameTurnStatus.stock_round: f'SR{self.turn_number}',
+            Game.GameTurnStatus.operation_clear_track: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.id} (Clear Track)',
+            Game.GameTurnStatus.operation_buy_office: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.id} (Buy Office)',
+            Game.GameTurnStatus.operation_rampage: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.id} (RAMPAGE!)',
+            # todo: change once there's a monster screen
+            Game.GameTurnStatus.operation_buy_monsters: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} (Buy monsters)',
+            Game.GameTurnStatus.operation_force_sell_stock_round: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} (Force sell)',
+            Game.GameTurnStatus.bankruptcy: 'Game over'
+        }[self.game_turn_status]
+
+    def increment_phase(self):
+        self.phase += 1
+
+    def get_phase_ors(self):
+        return {
+            1: 1,
+            2: 2,
+            3: 2,
+            4: 3,
+            5: 3
+        }[min(self.phase, 5)]
 
 # PRIVATE AUCTION
     def pa_get_uncommitted_cash(self, player_id):
@@ -486,8 +532,8 @@ class Game:
         self.pa_current_private.owner = self.current_player
         # Waterfall!
         self._pa_continue_waterfall()
-        self.pa_next_buy_player = self.players[(self.pa_next_buy_player.id + 1) % len(self.players)]
         if self.game_turn_status == 0:
+            self.pa_next_buy_player = self.players[(self.pa_next_buy_player.id + 1) % len(self.players)]
             self.current_player = self.pa_next_buy_player
 
     def _pa_continue_waterfall(self):
@@ -518,12 +564,19 @@ class Game:
         self.game_turn_status = Game.GameTurnStatus.private_auction_bid
 
     def _pa_finish(self):
-        self.game_turn_status = Game.GameTurnStatus.first_stock_round
         # This should maybe not be hard coded here
-        self.current_player = self.privates[0].owner
-        self.priority = self.current_player
+        self.priority = self.privates[0].owner
+        self.increment_phase()
+        self.sr_start()
 
 # STOCK ROUNDS
+    def sr_start(self):
+        self.turn_number += 1
+        self.game_turn_status = Game.GameTurnStatus.first_stock_round \
+            if self.turn_number == 1 \
+            else Game.GameTurnStatus.stock_round
+        self.current_player = self.priority
+
     def sr_show_buy_president(self, co):
         if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
                                          Game.GameTurnStatus.stock_round]:
@@ -531,6 +584,8 @@ class Game:
         if self.sr_bought_this_turn:
             return False
         if co.started:
+            return False
+        if not co.public:
             return False
         if self.current_player.cash < (min(self.market.ipos()) * 2):
             return False
@@ -546,6 +601,8 @@ class Game:
             return False
         if self.current_player.cash < co.ipo:
             return False
+        if not co.public:
+            return False
         if self.current_player in co.sr_sellers:
             return False
         return True
@@ -560,6 +617,8 @@ class Game:
             return False
         if self.current_player.cash < co.current_price():
             return False
+        if not co.public:
+            return False
         if self.current_player in co.sr_sellers:
             return False
         return True
@@ -573,6 +632,8 @@ class Game:
         if len([i for i in co.owners if i == self.current_player]) == 0:
             return False
         if co.president == self.current_player and co.no_next_president():
+            return False
+        if not co.public:
             return False
         return True
 
@@ -635,11 +696,38 @@ class Game:
 
 # OR
     def or_start(self):
-        self.game_turn_status = Game.GameTurnStatus.stock_round
-        self.current_player = self.priority
+        self.ors_this_turn = self.get_phase_ors()
+        self.or_next_sub()
+        self.or_subnumber = 0
+
+    def or_next_sub(self):
+        # Next sub turn (or2.2 to or2.3)
+        self._or_pay_privates()
+        self.or_subnumber += 1
+        if self.or_subnumber > self.ors_this_turn:
+            self.sr_start()
+        for co in self.companies.values():
+            co.acted_this_or = False
+        if any([i.floated for i in self.companies.values()]):
+            self.or_next_co()
+        else:
+            self.sr_start()
+
+    def or_next_co(self):
+        # Next company in this sub turn
+        next_co = self.market.next_company()
+        if next_co:
+            self.or_co = next_co
+            self.current_player = self.or_co.president
+            self.game_turn_status = Game.GameTurnStatus.operation_clear_track
+        else:
+            self.or_next_sub()
+
+    def _or_pay_privates(self):
+        # TODO
+        pass
 
 # State
-
     def get_state(self):
         state = {
             "phase": self.phase,
@@ -655,6 +743,10 @@ class Game:
             "priority": self.priority.id,
             "sr_sold_this_turn": self.sr_sold_this_turn,
             "sr_bought_this_turn": self.sr_bought_this_turn,
+            "turn_number": self.turn_number,
+            "ors_this_turn": self.ors_this_turn,
+            "or_subnumber": self.or_subnumber,
+            "or_co": self.or_co.id if self.or_co is not None else None,
         }
         return json.dumps(state)
 
@@ -678,6 +770,10 @@ class Game:
         self.priority = self.players[state["priority"]]
         self.sr_sold_this_turn = state["sr_sold_this_turn"]
         self.sr_bought_this_turn = state["sr_bought_this_turn"]
+        self.turn_number = state["turn_number"]
+        self.ors_this_turn = state["ors_this_turn"]
+        self.or_subnumber = state["or_subnumber"]
+        self.or_co = self.companies[state["or_co"]] if state['or_co'] else None
 
     def get_hash(self):
         return hash(self.get_state())

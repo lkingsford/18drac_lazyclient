@@ -2,7 +2,7 @@
 <title>{% block title %}{% endblock %}</title>
 <link href={{url_for("static", filename="game_view.css")}} rel="stylesheet" type="text/css"/>
 <nav>
-  <h1>18Dracula Game {{ game_id }}</h1>
+  <h1>18Dracula Game {{ game_id }} - {{ game.round_name() }} </h1>
   <h2>Current player: {{ game.current_player.name }}</h2>
   <h3>{{ game.current_action_display }}</h2>
 </nav>
