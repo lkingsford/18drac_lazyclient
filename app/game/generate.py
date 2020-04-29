@@ -2,6 +2,7 @@ import csv
 from flask import url_for
 import graphviz
 import svgwrite
+from .game import GameTurnStatus
 
 # Must be generated during query for url_for
 def images():
@@ -113,7 +114,17 @@ def generate_map(game):
                     "blue":"1",
                     "yellow": "1",
                     "PHASE": "0.5"}
+
+    clear_routes = []
+    clear_stage = game.game_turn_status == GameTurnStatus.operation_clear_track
+    if clear_stage:
+        clear_routes = list(game.map.get_clearing_routes(game.or_co))
+
     for route in routes:
+        special_clear_format = route in clear_routes
+        pen_thick = 3 if special_clear_format else 1
+        node_size = .4 if special_clear_format else (.05 if clear_stage else .1)
+
         start = last_node = route.place_1
         end = route.place_2
         for i in range(route.amount):
@@ -128,20 +139,22 @@ def generate_map(game):
                     fontcolor=route_text_colors[route.color],
                     fontsize="6",
                     shape="box",
-                    width=".1",
-                    height=".1",
+                    width=str(node_size),
+                    height=str(node_size),
                     fixedsize="true",
                     style="filled")
             graph.edge(last_node,
                     id,
                     color=route_colors[route.color],
                     minlen=min_len,
+                    penwidth=str(pen_thick),
                     length=str(length_weight))
             last_node = id
         graph.edge(last_node, end,
                 color=route_colors[route.color],
                 minlen="5",
-                length=str(length_weight))
+                penwidth=str(pen_thick),
+                length=str(route_weight[route.color]))
     svg_file = graph.pipe(format="svg")
     # Hacky, but we want the url to be correct for the image
     # Basically, graphviz's paths are different to the ones available on the

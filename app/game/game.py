@@ -326,7 +326,8 @@ class Game:
 
     class Map():
         class Destination:
-            def __init__(self, id, display_name, dest_type, values, station_count):
+            def __init__(self, game, id, display_name, dest_type, values, station_count):
+                self.game = game
                 self.upgrades = 0
                 self.stations = []
                 self.id = id
@@ -334,6 +335,15 @@ class Game:
                 self.dest_type = dest_type
                 self.values = values
                 self.station_count = station_count
+
+            def can_pass_through(self, company):
+                if dest_type in ['Export']:
+                    return False
+                if company.id in self.stations:
+                    return True
+                cur_station_count = self.station_count[self.upgrades]
+                occ_station_count = len([i for i in self.stations if game.companies[i].floated])
+                return cur_station_count > occ_station_count
 
             def get_state(self):
                 if len(self.stations) > 0 or \
@@ -345,18 +355,29 @@ class Game:
 
             def load_state(self, state):
                 self.upgrades = state['upgrades']
-                self.stations = state['stations']
-
+                self.stations = int(state['stations'])
 
         class Route:
-            def __init__(self):
-                pass
+            def __init__(self, place_1, place_2, color, amount, cost):
+                self.place_1 = place_1
+                self.place_2 = place_2
+                self.color = color
+                self.amount = amount
+                self.cost = cost
+                self.cleared = 0
+
+            def clear(self):
+                assert self.cleared < self.amount
+                self.cleared -= 1
 
             def get_state(self):
-                return None
+                if self.cleared > 0:
+                    return {'cleared': self.cleared}
+                else:
+                    return None
 
             def load_state(self, state):
-                pass
+                self.cleared = int(state['cleared'])
 
         def __init__(self, game, destination_reader, route_reader, companies_list):
             self.game = game
@@ -372,23 +393,47 @@ class Game:
                 values=[int_or_none(row[3]), int_or_none(row[4]), int_or_none(row[5]), int_or_none(row[6])]
                 station_count=[int_or_none(row[7]), int_or_none(row[8]), int_or_none(row[9]), int_or_none(row[10])]
                 reserved=int_or_none(row[11])
-                destination = Game.Map.Destination(_id, display_name, dest_type, values, station_count,)
+                destination = Game.Map.Destination(self.game, _id, display_name, dest_type, values, station_count,)
                 self.destinations.append(destination)
             for row in routes:
-                route = Game.Map.Route()
-                route.place_1 = row[0]
-                route.place_2 = row[1]
-                route.color = row[2]
-                route.amount = int_or_none(row[3]) or 0
-                route.cost = int_or_none(row[4])
+                place_1 = row[0]
+                place_2 = row[1]
+                color = row[2]
+                amount = int_or_none(row[3]) or 0
+                cost = int_or_none(row[4])
+                route = Game.Map.Route(place_1, place_2, color, amount, cost)
                 self.routes.append(route)
             for company in companies:
                 home_town_name = company[2]
                 home = [i for i in self.destinations if i.id == home_town_name][0]
                 home.stations.append(company[0])
 
+        def get_clearing_routes(self, company):
+            # Init queue with tokens
+            queue = [i for i in self.destinations if company.id in i.stations]
+            # Breadth first search
+            visited = {i: False for i in self.destinations}
+            for i in queue:
+                visited[i] = True
+            avail_routes = set()
+            while queue:
+                dest = queue.pop()
+                routes = self._get_routes_from(dest)
+                open_routes = [i for i in routes if i.cleared >= i.amount]
+                avail_routes |= set([i for i in routes if i.cleared < i.amount])
+                for route in open_routes:
+                    next_dest_id = route.place_1 if route.place_2 == dest.id else route.place_2
+                    next_dest = next(iter(i for i in self.destinations if i.id == next_dest_id))
+                    if not visited[next_dest]:
+                        queue.append(next_dest)
+                        visited[next_dest] = True
+            return avail_routes
+
+        def _get_routes_from(self, dest):
+            return [i for i in self.routes if (i.place_1 == dest.id) or (i.place_2 == dest.id)]
+
         def get_state(self):
-            return {"destinations": {i.id: i.get_state() for i in self.destinations if i},
+            return {"destinations": {i.id: i.get_state() for i in self.destinations if i.get_state()},
                     "routes": {i[0]: i[1].get_state() for i in enumerate(self.routes) if i[1].get_state()}}
 
         def load_state(self, state):
@@ -513,6 +558,16 @@ class Game:
             4: 3,
             5: 3
         }[min(self.phase, 5)]
+
+    def can_clear(self, color):
+        return {
+            1: color in ['yellow'],
+            2: color in ['yellow', 'green'],
+            3: color in ['yellow', 'green', 'red'],
+            4: True,
+        }[min(self.phase, 4)]
+
+
 
 # PRIVATE AUCTION
     def pa_get_uncommitted_cash(self, player_id):
@@ -841,3 +896,6 @@ class Game:
 
     def get_hash(self):
         return hash(self.get_state())
+
+# For import
+GameTurnStatus = Game.GameTurnStatus
