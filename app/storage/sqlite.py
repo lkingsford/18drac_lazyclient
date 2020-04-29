@@ -43,10 +43,9 @@ class Sqlite(Storage):
     def load_game_state(self, game_id):
         db = self.db()
         csr = db.cursor()
-        print(game_id)
         csr.execute("""SELECT state, last_update FROM game WHERE rowid=?""", (game_id,))
         return csr.fetchone()[0]
-    
+
     def get_games(self):
         db = self.db()
         csr = db.cursor()

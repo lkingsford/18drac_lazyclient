@@ -79,13 +79,13 @@ def generate_map(game):
             if max_stations > 0:
                 label += "<TR><TD><TABLE><TR>"
                 for station in range(max_stations):
-                    if station < destination.station_count[destination.current_upgrades]:
+                    if station < destination.station_count[destination.upgrades]:
                         image = 'CitySpace'
                         if len(destination.stations) > station:
                             co = destination.stations[station]
                             started = game.companies[co].floated
                             image = co + ("" if started else "_flip")
-                        label += f"<TD fixedsize='true'><IMG SRC='{(images()[image])[0]}'/></TD>"
+                        label += f"<TD><IMG SRC='{(images()[image])[0]}'/></TD>"
                 label += "</TR></TABLE></TD></TR>"
             label += "<TR><TD><TABLE>"
             label += get_value_row(destination.upgrades, destination.values, destination.station_count)

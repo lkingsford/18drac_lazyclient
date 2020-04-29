@@ -326,30 +326,53 @@ class Game:
 
     class Map():
         class Destination:
-            def __init__(self):
-                pass
-            current_upgrades = 0
+            def __init__(self, id, display_name, dest_type, values, station_count):
+                self.upgrades = 0
+                self.stations = []
+                self.id = id
+                self.display_name = display_name
+                self.dest_type = dest_type
+                self.values = values
+                self.station_count = station_count
+
+            def get_state(self):
+                if len(self.stations) > 0 or \
+                    self.upgrades > 0:
+                    return {'stations': self.stations,
+                            'upgrades': self.upgrades}
+                else:
+                    return None
+
+            def load_state(self, state):
+                self.upgrades = state['upgrades']
+                self.stations = state['stations']
+
 
         class Route:
             def __init__(self):
                 pass
 
+            def get_state(self):
+                return None
+
+            def load_state(self, state):
+                pass
+
         def __init__(self, game, destination_reader, route_reader, companies_list):
+            self.game = game
             self.destinations = []
             self.routes = []
             self.load_map(destination_reader, route_reader, companies_list)
 
         def load_map(self, destinations, routes, companies):
             for row in destinations:
-                destination = Game.Map.Destination()
-                destination.id = row[0]
-                destination.display_name = row[1]
-                destination.dest_type = row[2]
-                destination.values=[int_or_none(row[3]), int_or_none(row[4]), int_or_none(row[5]), int_or_none(row[6])]
-                destination.station_count=[int_or_none(row[7]), int_or_none(row[8]), int_or_none(row[9]), int_or_none(row[10])]
-                destination.reserved=int_or_none(row[11])
-                destination.upgrades = 0
-                destination.stations=[]
+                _id = row[0]
+                display_name = row[1]
+                dest_type = row[2]
+                values=[int_or_none(row[3]), int_or_none(row[4]), int_or_none(row[5]), int_or_none(row[6])]
+                station_count=[int_or_none(row[7]), int_or_none(row[8]), int_or_none(row[9]), int_or_none(row[10])]
+                reserved=int_or_none(row[11])
+                destination = Game.Map.Destination(_id, display_name, dest_type, values, station_count,)
                 self.destinations.append(destination)
             for row in routes:
                 route = Game.Map.Route()
@@ -365,10 +388,12 @@ class Game:
                 home.stations.append(company[0])
 
         def get_state(self):
-            return ""
+            return {"destinations": {i.id: i.get_state() for i in self.destinations if i},
+                    "routes": {i[0]: i[1].get_state() for i in enumerate(self.routes) if i[1].get_state()}}
 
         def load_state(self, state):
-            pass
+            destinations = state['destinations']
+            routes = state['routes']
 
     def __init__(self, load_state = None):
         with open("app/assets/Market.csv") as market_file:
