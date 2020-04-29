@@ -29,8 +29,8 @@ def images():
 
 def generate_map(game):
     # Lazy, 'cause I couldn't be bothered changing code
-    destinations = game.destinations
-    routes = game.routes
+    destinations = game.map.destinations
+    routes = game.map.routes
 
     destination_colors = {"Export":"#ffdddd", "City":"#ddddff", "Town":"#000000"}
     destination_text_colors = {"Export":"#000000", "City":"#000000", "Town":"#000000"}

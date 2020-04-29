@@ -27,14 +27,6 @@ class Game:
         operation_force_sell_stock_round = 8
         bankruptcy = 9
 
-    class Destination:
-        def __init__(self):
-            pass
-        current_upgrades = 0
-
-    class Route:
-        def __init__(self):
-            pass
 
     class PrivateCompany:
         def __init__(self, id, name, base_cost, revenue, description):
@@ -332,6 +324,52 @@ class Game:
             self.cash = state['cash']
             self.id = int(state['id'])
 
+    class Map():
+        class Destination:
+            def __init__(self):
+                pass
+            current_upgrades = 0
+
+        class Route:
+            def __init__(self):
+                pass
+
+        def __init__(self, game, destination_reader, route_reader, companies_list):
+            self.destinations = []
+            self.routes = []
+            self.load_map(destination_reader, route_reader, companies_list)
+
+        def load_map(self, destinations, routes, companies):
+            for row in destinations:
+                destination = Game.Map.Destination()
+                destination.id = row[0]
+                destination.display_name = row[1]
+                destination.dest_type = row[2]
+                destination.values=[int_or_none(row[3]), int_or_none(row[4]), int_or_none(row[5]), int_or_none(row[6])]
+                destination.station_count=[int_or_none(row[7]), int_or_none(row[8]), int_or_none(row[9]), int_or_none(row[10])]
+                destination.reserved=int_or_none(row[11])
+                destination.upgrades = 0
+                destination.stations=[]
+                self.destinations.append(destination)
+            for row in routes:
+                route = Game.Map.Route()
+                route.place_1 = row[0]
+                route.place_2 = row[1]
+                route.color = row[2]
+                route.amount = int_or_none(row[3]) or 0
+                route.cost = int_or_none(row[4])
+                self.routes.append(route)
+            for company in companies:
+                home_town_name = company[2]
+                home = [i for i in self.destinations if i.id == home_town_name][0]
+                home.stations.append(company[0])
+
+        def get_state(self):
+            return ""
+
+        def load_state(self, state):
+            pass
+
     def __init__(self, load_state = None):
         with open("app/assets/Market.csv") as market_file:
             reader = csv.reader(market_file)
@@ -345,7 +383,7 @@ class Game:
             self.destinations = []
             self.routes = []
             self.players = []
-            self.load_map(destination_reader, route_reader, companies_list)
+            self.map = Game.Map(self, destination_reader, route_reader, companies_list)
             self.load_companies(companies_list)
         with open("app/assets/Privates.csv") as privates_file:
             privates_reader = csv.reader(privates_file)
@@ -402,30 +440,6 @@ class Game:
         else:
             from_party.cash -= quantity
 
-    def load_map(self, destinations, routes, companies):
-        for row in destinations:
-            destination = Game.Destination()
-            destination.id = row[0]
-            destination.display_name = row[1]
-            destination.dest_type = row[2]
-            destination.values=[int_or_none(row[3]), int_or_none(row[4]), int_or_none(row[5]), int_or_none(row[6])]
-            destination.station_count=[int_or_none(row[7]), int_or_none(row[8]), int_or_none(row[9]), int_or_none(row[10])]
-            destination.reserved=int_or_none(row[11])
-            destination.upgrades = 0
-            destination.stations=[]
-            self.destinations.append(destination)
-        for row in routes:
-            route = Game.Route()
-            route.place_1 = row[0]
-            route.place_2 = row[1]
-            route.color = row[2]
-            route.amount = int_or_none(row[3]) or 0
-            route.cost = int_or_none(row[4])
-            self.routes.append(route)
-        for company in companies:
-            home_town_name = company[2]
-            home = [i for i in self.destinations if i.id == home_town_name][0]
-            home.stations.append(company[0])
 
     def load_companies(self, companies):
         self.companies = {i[0]: Game.Company(self, i[0], i[1], i[3], i[4]) for i in companies}
@@ -770,6 +784,7 @@ class Game:
             "ors_this_turn": self.ors_this_turn,
             "or_subnumber": self.or_subnumber,
             "or_co": self.or_co.id if self.or_co is not None else None,
+            "map": self.map.get_state(),
         }
         return json.dumps(state)
 
@@ -797,6 +812,7 @@ class Game:
         self.ors_this_turn = state["ors_this_turn"]
         self.or_subnumber = state["or_subnumber"]
         self.or_co = self.companies[state["or_co"]] if state['or_co'] else None
+        self.map.load_state(state["map"])
 
     def get_hash(self):
         return hash(self.get_state())
