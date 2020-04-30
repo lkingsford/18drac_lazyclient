@@ -77,6 +77,7 @@ class Game:
             self.sr_sellers = []
             self.acted_this_or = False
             self.public = private == "public"
+            self.tokens = 3
 
         def start_new_company(self, ipo, player):
             if ipo not in self.market.ipos():
@@ -107,6 +108,7 @@ class Game:
                     'president': self.president.id if self.president is not None else None,
                     'shares_in_ipo': self.shares_in_ipo,
                     'shares_in_market': self.shares_in_market,
+                    'tokens': self.tokens,
                     'acted_this_or': self.acted_this_or,
                      }
 
@@ -122,6 +124,7 @@ class Game:
             self.shares_in_ipo = int(state['shares_in_ipo'])
             self.shares_in_market = int(state['shares_in_market'])
             self.acted_this_or = int(state['acted_this_or'])
+            self.tokens = int(state['tokens'])
 
         def buy_share_ipo(self, player):
             assert self.shares_in_ipo > 0, "Not enough shares in ipo"
@@ -195,6 +198,9 @@ class Game:
             counts = [(i, len([j for j in self.owners if j == i])) for i in self.game.players]
             counts = [(i[0], i[1]) for i in counts if i[1] > 0]
             return counts
+        
+        def token_cost(self):
+            return {0: None, 1: 100, 2: 100, 3: 40}[self.tokens]
 
 
     class Market:
@@ -336,14 +342,33 @@ class Game:
                 self.values = values
                 self.station_count = station_count
 
+            def cur_station_count(self):
+                cur_count = None
+                idx = self.upgrades
+                while cur_count is None:
+                    if idx < 0:
+                        return 0
+                    cur_count = self.station_count[self.upgrades]
+                    idx -= 1
+                return cur_count
+
             def can_pass_through(self, company):
-                if dest_type in ['Export']:
+                if self.dest_type in ['Export']:
                     return False
                 if company.id in self.stations:
                     return True
-                cur_station_count = self.station_count[self.upgrades]
-                occ_station_count = len([i for i in self.stations if game.companies[i].floated])
+                cur_station_count = self.cur_station_count()
+                if cur_station_count == 0:
+                    return True
+                occ_station_count = len([i for i in self.stations if self.game.companies[i].floated])
                 return cur_station_count > occ_station_count
+            
+            def buy_office(self, company):
+                assert company.tokens > 0
+                assert company.cash >= company.token_cost()
+                self.game.transfer_cash(company.token_cost(), None, company)
+                company.tokens -= 1
+                self.stations.append(company.id)
 
             def get_state(self):
                 if len(self.stations) > 0 or \
@@ -409,29 +434,41 @@ class Game:
                 home = [i for i in self.destinations if i.id == home_town_name][0]
                 home.stations.append(company[0])
 
-        def get_clearing_routes(self, company):
+        def _breadth_first_search(self, company, is_routes, store_condition):
             # Init queue with tokens
             queue = [i for i in self.destinations if company.id in i.stations]
             # Breadth first search
             visited = {i: False for i in self.destinations}
             for i in queue:
                 visited[i] = True
-            avail_routes = set()
+            result = set()
             while queue:
                 dest = queue.pop()
                 routes = self._get_routes_from(dest)
                 open_routes = [i for i in routes if i.cleared >= i.amount]
-                avail_routes |= set([i for i in routes \
-                    if self.game.can_clear(i.color) \
-                    and i.cleared < i.amount \
-                    and company.cash >= (i.cost or 0)])
+                if is_routes:
+                    result |= set([i for i in routes if store_condition(i)])
+                else:
+                    if store_condition(dest):
+                        result.add(dest)
                 for route in open_routes:
                     next_dest_id = route.place_1 if route.place_2 == dest.id else route.place_2
                     next_dest = next(iter(i for i in self.destinations if i.id == next_dest_id))
-                    if not visited[next_dest]:
+                    if next_dest.can_pass_through(company) and not visited[next_dest]:
                         queue.append(next_dest)
                         visited[next_dest] = True
-            return avail_routes
+            return result
+
+        def get_clearing_routes(self, company):
+            return self._breadth_first_search(company, True, \
+                lambda i: self.game.can_clear(i.color) \
+                          and i.cleared < i.amount \
+                          and company.cash >= (i.cost or 0))
+
+        def get_open_offices(self, company):
+            return self._breadth_first_search(company, False, \
+                lambda i: company.id not in i.stations \
+                          and len(i.stations) < (i.station_count[i.upgrades] or 0))
 
         def _get_routes_from(self, dest):
             return [i for i in self.routes if (i.place_1 == dest.id) or (i.place_2 == dest.id)]
@@ -863,9 +900,33 @@ class Game:
             if i.open:
                 self.transfer_cash(i.revenue, i.owner)
 
+    def act_or_pass(self):
+        if self.game_turn_status == Game.GameTurnStatus.operation_clear_track:
+            self.start_or_buy_office()
+        elif self.game_turn_status == Game.GameTurnStatus.operation_buy_office:
+            self.start_or_rampage()
+
+    def act_or_buy_office(self, dest_id):
+        dest = self.map.get_destination(dest_id)
+        dest.buy_office(self.or_co)
+        self.start_or_rampage()
+
     def act_or_clear_route(self, route_id):
         route = next(iter([i for i in self.map.routes if i.id == route_id]))
         self.map.clear_route(self.or_co, route)
+        self.start_or_buy_office()
+
+    def start_or_buy_office(self):
+        self.game_turn_status = Game.GameTurnStatus.operation_buy_office
+
+    def start_or_rampage(self):
+        self.or_co.acted_this_or = True
+        self.or_next_co()
+
+    def or_show_pass(self):
+        return self.game_turn_status in [Game.GameTurnStatus.operation_clear_track,
+                                         Game.GameTurnStatus.operation_buy_office,
+                                         Game.GameTurnStatus.operation_buy_monsters]
 
 # State
     def get_state(self):

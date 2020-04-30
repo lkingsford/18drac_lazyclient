@@ -6,7 +6,25 @@
   <h2>Current player: {{ game.current_player.name }}</h2>
   <h3>{{ game.current_action_display }}</h2>
 </nav>
+
 <section class="content">
+
+{% if game.sr_show_pass() %}
+<form action={{ url_for("sr_pass", game_id=game_id) }} method='POST'>
+  <input type="submit" value="Pass"/>
+</form>
+{% endif %}
+{% if game.sr_show_done() %}
+<form action={{ url_for("sr_done", game_id=game_id) }} method='POST'>
+  <input type="submit" value="Done"/>
+</form>
+{% endif %}
+{% if game.or_show_pass() %}
+<form action={{ url_for("or_pass", game_id=game_id) }} >
+  <input type="submit" value="Pass"/>
+</form>
+{% endif %}
+
 <div class="tabs">
 <button class="tablinks" onclick="openTab(event, 'map_tab');">Map</button>
 <button class="tablinks" onclick="openTab(event, 'market_tab');")>Market</button>
@@ -31,16 +49,6 @@
 <div id="company_tab" class="tabcontent active">
 {% else %}
 <div id="company_tab" class="tabcontent">
-{% endif %}
-{% if game.sr_show_pass() %}
-<form action={{ url_for("sr_pass", game_id=game_id) }} method='POST'>
-  <input type="submit" value="Pass"/>
-</form>
-{% endif %}
-{% if game.sr_show_done() %}
-<form action={{ url_for("sr_done", game_id=game_id) }} method='POST'>
-  <input type="submit" value="Done"/>
-</form>
 {% endif %}
 <h2>Fronts</h2>
     <div class="company_row">
