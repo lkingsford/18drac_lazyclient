@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   sodipodi:docname="CityCanOpen.svg"
+   inkscape:version="1.1-dev (ddb55ca, 2020-02-02)"
+   id="svg21036"
+   version="1.1"
+   viewBox="0 0 45.621727 45.621727"
+   height="45.621727mm"
+   width="45.621727mm">
+  <defs
+     id="defs21030" />
+  <sodipodi:namedview
+     inkscape:window-maximized="0"
+     inkscape:window-y="23"
+     inkscape:window-x="0"
+     inkscape:window-height="787"
+     inkscape:window-width="1251"
+     fit-margin-bottom="0"
+     fit-margin-right="0"
+     fit-margin-left="0"
+     fit-margin-top="0"
+     showgrid="false"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="mm"
+     inkscape:cy="86.214289"
+     inkscape:cx="-412.35714"
+     inkscape:zoom="0.35"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base" />
+  <metadata
+     id="metadata21033">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(-23.302235,-85.290333)"
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
+    <circle
+       r="22.507874"
+       cy="108.1012"
+       cx="46.113098"
+       id="path21038"
+       style="fill:#800000;stroke:#000000;stroke-width:0.60598" />
+    <circle
+       style="fill:#800000;stroke:#000000;stroke-width:0.60598"
+       id="circle16"
+       cx="46.113098"
+       cy="108.1012"
+       r="22.507874" />
+    <circle
+       r="22.507874"
+       cy="108.1012"
+       cx="46.113098"
+       id="circle18"
+       style="fill:#800000;stroke:#000000;stroke-width:0.60598" />
+    <ellipse
+       ry="22.507542"
+       rx="22.557676"
+       style="fill:#800000;stroke:#000000;stroke-width:0.606646"
+       id="circle20"
+       cx="46.163235"
+       cy="108.1012" />
+  </g>
+</svg>

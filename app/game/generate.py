@@ -7,6 +7,7 @@ from .game import GameTurnStatus
 # Must be generated during query for url_for
 def images():
     return {"CitySpace": ['app/assets/CitySpace.svg', url_for('static_assets', path='CitySpace.svg')],
+            "CityCanOpen": ['app/assets/CityCanOpen.svg', url_for('static_assets', path='CityCanOpen.svg')],
             "bh": ['app/assets/tokens/bh.svg', url_for('static_assets', path="tokens/bh.svg")],
             "bh_flip": ['app/assets/tokens/bh_flip.svg', url_for('static_assets', path="tokens/bh_flip.svg")],
             "bt": ['app/assets/tokens/bt.svg', url_for('static_assets', path="tokens/bt.svg")],
@@ -60,6 +61,12 @@ def generate_map(game, game_id):
         result += "</TR>"
         return result
 
+    if game.game_turn_status == GameTurnStatus.operation_buy_office and\
+       game.or_co.cash >= game.or_co.token_cost():
+        can_open_office = [i.id for i in game.map.get_open_offices(game.or_co)]
+    else:
+        can_open_office = []
+
     for destination in destinations:
         color = destination_colors[destination.dest_type]
         if destination.dest_type == "Town":
@@ -82,11 +89,15 @@ def generate_map(game, game_id):
                 for station in range(max_stations):
                     if station < destination.station_count[destination.upgrades]:
                         image = 'CitySpace'
+                        href = ""
                         if len(destination.stations) > station:
                             co = destination.stations[station]
                             started = game.companies[co].floated
                             image = co + ("" if started else "_flip")
-                        label += f"<TD><IMG SRC='{(images()[image])[0]}'/></TD>"
+                        elif destination.id in can_open_office:
+                            image = "CityCanOpen"
+                            href = url_for("or_buy_office", game_id=game_id, dest_id=destination.id)
+                        label += f"<TD HREF='{href}' TARGET='_top'><IMG SRC='{(images()[image])[0]}'/></TD>"
                 label += "</TR></TABLE></TD></TR>"
             label += "<TR><TD><TABLE>"
             label += get_value_row(destination.upgrades, destination.values, destination.station_count)

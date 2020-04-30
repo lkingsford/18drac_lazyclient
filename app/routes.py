@@ -128,4 +128,14 @@ def or_clear_route(game, game_id, route_id):
     game.act_or_clear_route(route_id)
     return redirect(url_for("view", game_id=game_id))
 
+@app.route('/game/<game_id>/or_pass')
+@bind_game(save=True)
+def or_pass(game, game_id):
+    game.act_or_pass()
+    return redirect(url_for("view", game_id=game_id))
 
+@app.route('/game/<game_id>/or_buy_office/<dest_id>')
+@bind_game(save=True)
+def or_buy_office(game, game_id, dest_id):
+    game.act_or_buy_office(dest_id)
+    return redirect(url_for("view", game_id=game_id))
