@@ -354,8 +354,8 @@ class Game:
                     return None
 
             def load_state(self, state):
-                self.upgrades = state['upgrades']
-                self.stations = int(state['stations'])
+                self.upgrades = int(state['upgrades'])
+                self.stations = state['stations']
 
         class Route:
             def __init__(self, place_1, place_2, color, amount, cost):
@@ -365,10 +365,11 @@ class Game:
                 self.amount = amount
                 self.cost = cost
                 self.cleared = 0
+                self.id = f"{place_1}_{place_2}"
 
             def clear(self):
                 assert self.cleared < self.amount
-                self.cleared -= 1
+                self.cleared += 1
 
             def get_state(self):
                 if self.cleared > 0:
@@ -420,7 +421,10 @@ class Game:
                 dest = queue.pop()
                 routes = self._get_routes_from(dest)
                 open_routes = [i for i in routes if i.cleared >= i.amount]
-                avail_routes |= set([i for i in routes if i.cleared < i.amount])
+                avail_routes |= set([i for i in routes \
+                    if self.game.can_clear(i.color) \
+                    and i.cleared < i.amount \
+                    and company.cash >= (i.cost or 0)])
                 for route in open_routes:
                     next_dest_id = route.place_1 if route.place_2 == dest.id else route.place_2
                     next_dest = next(iter(i for i in self.destinations if i.id == next_dest_id))
@@ -432,13 +436,27 @@ class Game:
         def _get_routes_from(self, dest):
             return [i for i in self.routes if (i.place_1 == dest.id) or (i.place_2 == dest.id)]
 
+        def clear_route(self, company, route):
+            assert company.cash >= (route.cost or 0)
+            assert self.game.can_clear(route.color)
+            self.game.transfer_cash(route.cost or 0, None, company)
+            self.game.cubes[route.color] += 1
+            route.clear()
+
+        def get_destination(self, dest):
+            return next(iter([i for i in self.destinations if i.id == dest]))
+
         def get_state(self):
             return {"destinations": {i.id: i.get_state() for i in self.destinations if i.get_state()},
                     "routes": {i[0]: i[1].get_state() for i in enumerate(self.routes) if i[1].get_state()}}
 
         def load_state(self, state):
-            destinations = state['destinations']
-            routes = state['routes']
+            for dest_id, value in state['destinations'].items():
+                dest = self.get_destination(dest_id)
+                dest.load_state(value)
+            for route_idx, value in state['routes'].items():
+                route = self.routes[int(route_idx)]
+                route.load_state(value)
 
     def __init__(self, load_state = None):
         with open("app/assets/Market.csv") as market_file:
@@ -467,6 +485,7 @@ class Game:
         self.ors_this_turn = 0
         self.or_subnumber = 0
         self.or_co = None
+        self.cubes = {'yellow':0, 'green':0, 'blue':0, 'red':0}
         if load_state:
             self.load_state(load_state)
         # Have to start game externally
@@ -844,6 +863,10 @@ class Game:
             if i.open:
                 self.transfer_cash(i.revenue, i.owner)
 
+    def act_or_clear_route(self, route_id):
+        route = next(iter([i for i in self.map.routes if i.id == route_id]))
+        self.map.clear_route(self.or_co, route)
+
 # State
     def get_state(self):
         state = {
@@ -865,6 +888,7 @@ class Game:
             "or_subnumber": self.or_subnumber,
             "or_co": self.or_co.id if self.or_co is not None else None,
             "map": self.map.get_state(),
+            "cubes": self.cubes,
         }
         return json.dumps(state)
 
@@ -893,6 +917,7 @@ class Game:
         self.or_subnumber = state["or_subnumber"]
         self.or_co = self.companies[state["or_co"]] if state['or_co'] else None
         self.map.load_state(state["map"])
+        self.cubes = state['cubes']
 
     def get_hash(self):
         return hash(self.get_state())

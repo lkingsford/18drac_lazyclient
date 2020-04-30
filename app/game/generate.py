@@ -28,7 +28,7 @@ def images():
             "uu": ['app/assets/tokens/uu.svg', url_for('static_assets', path="tokens/uu.svg")],
             "uu_flip": ['app/assets/tokens/uu_flip.svg', url_for('static_assets', path="tokens/uu_flip.svg")]}
 
-def generate_map(game):
+def generate_map(game, game_id):
     # Lazy, 'cause I couldn't be bothered changing code
     destinations = game.map.destinations
     routes = game.map.routes
@@ -124,6 +124,7 @@ def generate_map(game):
         special_clear_format = route in clear_routes
         pen_thick = 3 if special_clear_format else 1
         node_size = .4 if special_clear_format else (.05 if clear_stage else .1)
+        href = "" if not special_clear_format else url_for('or_clear_route', game_id=game_id, route_id=route.id)
 
         start = last_node = route.place_1
         end = route.place_2
@@ -133,6 +134,7 @@ def generate_map(game):
             # Length weight is COST of lengthening - high = short
             length_weight = 8 if i > 0 else route_weight[route.color]
             min_len = "5" if i == 0 else "0"
+            filled = i >= (route.cleared)
             graph.node(id,
                     label,
                     color=route_colors[route.color],
@@ -142,7 +144,9 @@ def generate_map(game):
                     width=str(node_size),
                     height=str(node_size),
                     fixedsize="true",
-                    style="filled")
+                    href=href,
+                    target="_top",
+                    style="filled" if filled else "")
             graph.edge(last_node,
                     id,
                     color=route_colors[route.color],

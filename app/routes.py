@@ -29,7 +29,7 @@ def bind_game(save=False):
 @app.route('/game/<game_id>/map')
 @bind_game()
 def map_image(game, game_id):
-    image = io.BytesIO(generate_map(game))
+    image = io.BytesIO(generate_map(game, game_id))
     return send_file(image, mimetype="image/svg+xml")
 
 @app.route('/game/<game_id>/market')
@@ -122,5 +122,10 @@ def sr_done(game, game_id):
     game.act_sr_done()
     return redirect(url_for("view", game_id=game_id))
 
+@app.route('/game/<game_id>/or_clear_route/<route_id>')
+@bind_game(save=True)
+def or_clear_route(game, game_id, route_id):
+    game.act_or_clear_route(route_id)
+    return redirect(url_for("view", game_id=game_id))
 
 
