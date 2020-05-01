@@ -8,6 +8,7 @@ from .map import Map
 from .company import Company
 from .private_company import PrivateCompany
 from .market import Market
+from .player import Player
 
 def int_or_none(s):
     if s == "":
@@ -27,22 +28,6 @@ class Game:
         operation_buy_monsters = 7
         operation_force_sell_stock_round = 8
         bankruptcy = 9
-
-    class Player():
-        def __init__(self, id = 0, name = None):
-            self.id = id
-            self.name = name
-            self.cash = 0
-
-        def get_state(self):
-            return {'name': self.name,
-                    'cash': self.cash,
-                    'id': self.id}
-
-        def load_state(self, state):
-            self.name = state['name']
-            self.cash = state['cash']
-            self.id = int(state['id'])
 
     def __init__(self, load_state = None):
         with open("app/assets/Market.csv") as market_file:
@@ -85,7 +70,7 @@ class Game:
         self.game_turn_status = Game.GameTurnStatus.private_auction_buy_or_bid
         # Randomize players
         random.shuffle(players)
-        self.players = [Game.Player(i, j) for i, j in enumerate(players)]
+        self.players = [Player(i, j) for i, j in enumerate(players)]
         self.bank = self.bank_size
         # Deal starting cash
         starting_cash = int(self.starting_cash / len(self.players))
@@ -508,7 +493,7 @@ class Game:
         self.game_turn_status = Game.GameTurnStatus(state["game_turn_status"])
         self.market.load_state(state["market"], self.companies)
         for player_state in state["players"]:
-            player = Game.Player()
+            player = Player()
             player.load_state(player_state)
             self.players.append(player)
         for id, co_state in state["companies"].items():
