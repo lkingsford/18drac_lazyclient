@@ -137,7 +137,23 @@ class Company:
         counts = [(i, len([j for j in self.owners if j == i])) for i in self.game.players]
         counts = [(i[0], i[1]) for i in counts if i[1] > 0]
         return counts
-    
+
     def token_cost(self):
         return {0: None, 1: 100, 2: 100, 3: 40}[self.tokens]
 
+    def monster_display(self):
+        def monster_name(i):
+            exp_str = f"(Eaten Phase {i.expires})" if i.expires else ""
+            return i.name + exp_str
+
+        holdings = [monster_name(i) for i in self.monsters()]
+        if not holdings:
+            return "None"
+        else:
+            return ", ".join(holdings)
+
+    def monsters(self):
+        return [i for i in self.game.monsters if i.owner == self]
+
+    def at_monster_limit(self):
+        return len(self.monsters()) >= self.game.monster_limits[self.game.phase]
