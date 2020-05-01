@@ -4,7 +4,7 @@
 <nav>
   <h1>18Dracula Game {{ game_id }} - {{ game.round_name() }} </h1>
   <h2>Current player: {{ game.current_player.name }}</h2>
-  <h3>{{ game.current_action_display }}</h2>
+  <h3>{{ game.important_status() }}</h2>
 </nav>
 
 <section class="content">
@@ -29,6 +29,7 @@
 <button class="tablinks" onclick="openTab(event, 'map_tab');">Map</button>
 <button class="tablinks" onclick="openTab(event, 'market_tab');")>Market</button>
 <button class="tablinks" onclick="openTab(event, 'company_tab');")>Fronts and Players</button>
+<button class="tablinks" onclick="openTab(event, 'monsters_tab');")>Monsters</button>
 <button class="tablinks" onclick="openTab(event, 'associates_tab');")>Associates</button>
 </div>
 
@@ -43,6 +44,78 @@
 <div id="market_tab" class="tabcontent">
 {# Hash is to ensure reload #}
 <object type="image/svg+xml" data={{url_for("market", game_id=game_id, hash=game.market.get_hash())}}></object>
+</div>
+
+{% if game.start_on() == 'monster' %}
+<div id="monsters_tab" class="tabcontent active">
+{% else %}
+<div id="monsters_tab" class="tabcontent">
+{% endif %}
+  Phase {{ game.phase }}
+  {% if game.monster_sales_for_phase[game.phase] %}
+    Remaining monsters in phase: {{  game.phase_sales_remaining }}
+  {% endif %}
+  <H2> Available Monsters </H2>
+  <div class="company_row">
+  {% for monster in game.or_available_monsters() %}
+    <div class="company_column"><div class="company_card">
+    <small>Phase {{ monster[0].phase }}</small>
+    <h3> {{ monster[0].name }} x{{monster[1]}}</h3>
+    <div>
+    {% if monster[0].expires %}
+    Eaten in phase {{monster[0].expires}}
+    {% endif %}
+    </div>
+    <div>
+    Moves: {{monster[0].get_move_display()}}
+    </div>
+    <div>
+    Costs: {{monster[0].cost}}
+    </div>
+    <ul>
+    {% for rule in monster[0].get_special_rules() %}
+    <li> {{rule}} </li>
+    {% endfor %}
+    </ul>
+    {% if monster[0].get_trades() %}
+    Can be traded for: {{ monster[0].get_trades() }} when available
+    {% endif %}
+    {% if game.or_can_buy_monster(monster[0]) %}
+    <form action={{ url_for("or_buy_monster", monster_id=monster[0].id, game_id=game_id) }}>
+      <input type="submit" value="Buy Monster"/>
+    </form>
+    {% endif %}
+    </div></div>
+  {% endfor %}
+  </div>
+  <H2> Future Monsters </H2>
+  <div class="company_row">
+  {% for monster in game.or_future_monsters() %}
+    <div class="company_column"><div class="company_card">
+    <small>Phase {{ monster[0].phase }}</small>
+    <h3> {{ monster[0].name }} x{{monster[1]}}</h3>
+    <div>
+    {% if monster[0].expires %}
+    Eaten in phase {{monster[0].expires}}
+    {% endif %}
+    </div>
+    <div>
+    Moves: {{monster[0].get_move_display()}}
+    </div>
+    <div>
+    Costs: {{monster[0].cost}}
+    </div>
+    <ul>
+    {% for rule in monster[0].get_special_rules() %}
+    <li> {{rule}} </li>
+    {% endfor %}
+    </ul>
+    {% if monster[0].get_trades() %}
+    Can be traded for: {{ monster[0].get_trades() }} when available
+    {% endif %}
+    </div></div>
+  {% endfor %}
+  </div>
 </div>
 
 {% if game.start_on() == 'fronts' %}
@@ -74,6 +147,10 @@
           <tr>
             <td> President: </td>
             <td colspan=4> {{ game.companies[c].president.name }} </td>
+          </tr>
+          <tr>
+            <td> Monsters: </td>
+            <td colspan=4> {{ game.companies[c].monster_display() }}</td>
           </tr>
           {% if game.companies[c].public %}
             <td> Stock holdings: </td>

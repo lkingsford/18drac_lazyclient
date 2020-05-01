@@ -9,3 +9,6 @@ id,Display Name,home town,company type,html Color
 
 Privates
 id, Display Name,base cost,base revenue,special rule,description
+
+Monsters
+id,Name,Q,Phase,Cost,Expires,Movement,SpecialRules,TradeCost
