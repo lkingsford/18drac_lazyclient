@@ -6,6 +6,7 @@ from itertools import chain
 from . import testing_states
 from .map import Map
 from .company import Company
+from .private_company import PrivateCompany
 
 def int_or_none(s):
     if s == "":
@@ -25,38 +26,6 @@ class Game:
         operation_buy_monsters = 7
         operation_force_sell_stock_round = 8
         bankruptcy = 9
-
-
-    class PrivateCompany:
-        def __init__(self, id, name, base_cost, revenue, description):
-            self.id = id
-            self.name = name
-            self.base_cost = base_cost
-            self.revenue = revenue
-            self.description = description
-            self.owner = None
-            self.bids = []
-            self.open = True
-
-        def bid(self, bidder, bid):
-            self.bids = [i for i in self.bids if i[0] != bidder]
-            self.bids.append((bidder, bid))
-
-        def get_state(self):
-            return {
-                'owner': self.owner.id if self.owner is not None else None,
-                'bids': [(i[0].id, i[1]) for i in self.bids],
-                'open': self.open,
-            }
-
-        def load_state(self, state, game):
-            self.owner = game.players[state['owner']] if state['owner'] is not None else None
-            self.bids = [(next(j for j in game.players if j.id == i[0]), i[1]) for i in state['bids']]
-            self.open = state['open']
-
-        def next_min_bid_amount(self, game):
-            return self.bids[-1][1] + game.min_bid_increment if (len(self.bids) > 0) else self.base_cost + game.min_bid_increment
-
 
     class Market:
         class StockSpot:
@@ -261,7 +230,7 @@ class Game:
         self.companies = {i[0]: Company(self, i[0], i[1], i[3], i[4]) for i in companies}
 
     def load_privates(self, privates):
-        self.privates = [Game.PrivateCompany(i[0], i[1], int(i[2]), int(i[3]), i[5]) for i in privates]
+        self.privates = [PrivateCompany(i[0], i[1], int(i[2]), int(i[3]), i[5]) for i in privates]
 
     def start_on(self):
         return {
