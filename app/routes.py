@@ -19,6 +19,7 @@ def bind_game(save=False):
             result = func(*args, **kwargs, game=game)
 
             if save:
+                db.log_action(game_id, func.__name__, kwargs)
                 db.save_game_state(game_id, game.get_state(), datetime.datetime.now())
 
             return result
