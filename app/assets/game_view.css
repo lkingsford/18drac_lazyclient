@@ -83,3 +83,7 @@
   .active{
     display: block;
   }
+
+  .active_monster{
+    font-weight: bolder;
+  }

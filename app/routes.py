@@ -146,3 +146,34 @@ def or_buy_office(game, game_id, dest_id):
 def or_buy_monster(game, game_id, monster_id):
     game.act_or_buy_monster(monster_id)
     return redirect(url_for("view", game_id=game_id))
+
+@app.route('/game/<game_id>/rampage/pay_full')
+@bind_game(save=True)
+def or_pay_full(game, game_id):
+    game.act_or_rampage_pay()
+    return redirect(url_for("view", game_id=game_id))
+
+@app.route('/game/<game_id>/rampage/pay_withhold')
+@bind_game(save=True)
+def or_pay_withhold(game, game_id):
+    game.act_or_rampage_withhold()
+    return redirect(url_for("view", game_id=game_id))
+
+@app.route('/game/<game_id>/rampage/clear_route/<monster_idx>')
+@bind_game(save=True)
+def or_clear_monster_route(game, game_id, monster_idx):
+    game.act_or_rampage_clear_route(int(monster_idx))
+    return redirect(url_for("view", game_id=game_id))
+
+@app.route('/game/<game_id>/rampage/edit_route/<monster_idx>')
+@bind_game(save=True)
+def or_edit_monster_route(game, game_id, monster_idx):
+    game.act_or_rampage_edit_route(int(monster_idx))
+    return redirect(url_for("view", game_id=game_id))
+ 
+@app.route('/game/<game_id>/rampage/add_node/<node_id>')
+@bind_game(save=True)
+def or_add_node_to_route(game, game_id, node_id):
+    game.act_or_rampage_add_to_route(node_id)
+    return redirect(url_for("view", game_id=game_id))
+ 

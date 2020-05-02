@@ -1,8 +1,10 @@
 import csv
 import json
 import random
-from enum import Enum
+from functools import reduce
+from operator import concat
 from itertools import chain
+from enum import Enum
 from . import testing_states
 from .map import Map
 from .company import Company
@@ -12,7 +14,7 @@ from .player import Player
 from .monster import Monster, SpecialRules as MonsterSpecialRules
 
 def int_or_none(s):
-    if s == "":
+    if s == "" or s == None:
         return None
     else:
         return int(s)
@@ -76,6 +78,8 @@ class Game:
         self.or_co = None
         self.cubes = {'yellow':0, 'green':0, 'blue':0, 'red':0}
         self.phase_sales_remaining = 0
+        self.rampage_editing_route_monster_idx = None
+        self.rampage_current_routes_ids = []
         if load_state:
             self.load_state(load_state)
         # Have to start game externally
@@ -135,7 +139,6 @@ class Game:
             Game.GameTurnStatus.operation_clear_track: 'map',
             Game.GameTurnStatus.operation_buy_office: 'map',
             Game.GameTurnStatus.operation_rampage: 'map',
-            # todo: change once there's a monster screen
             Game.GameTurnStatus.operation_buy_monsters: "monster",
             Game.GameTurnStatus.operation_force_sell_stock_round: 'fronts',
             Game.GameTurnStatus.bankruptcy: 'fronts'
@@ -494,21 +497,107 @@ class Game:
 
     def start_or_rampage(self):
         if len(self.or_co.monsters()) == 0:
-            self._or_withhold(0)
-            return
+            if self.or_co.public:
+                self._or_withhold(0)
+                return
+            else:
+                self.start_or_buy_monsters()
+                return
+        self.rampage_current_routes_ids = [[] for _ in self.or_co.monsters()]
+        self.game_turn_status = Game.GameTurnStatus.operation_rampage
 
-    def _or_withold(self, amount):
+    def _or_withhold(self, amount):
         self.transfer_cash(amount, self.or_co)
-        self.market.withheld(self.or_co)
+        if self.or_co.public:
+            self.market.withheld(self.or_co)
         self.start_or_buy_monsters()
 
-    def _or_dividends(self, amount)
+    def _or_dividends(self, amount):
         amount_per_share = int(amount / 10)
         for payee in self.or_co.owners:
             self.transfer_cash(amount_per_share, payee)
         self.transfer_cash(amount_per_share * self.or_co.shares_in_market, self.or_co)
-        self.market.paid_out(self.or_co)
+        if self.or_co.public:
+            self.market.paid_out(self.or_co)
         self.start_or_buy_monsters()
+
+    def act_or_rampage_edit_route(self, monster_idx):
+        self.rampage_editing_route_monster_idx = monster_idx
+
+    def act_or_rampage_clear_route(self, monster_idx):
+        self.rampage_current_routes_ids[monster_idx] = []
+
+    def act_or_rampage_add_to_route(self, dest_id):
+        dest = self.map.get_destination(dest_id)
+        self.rampage_current_routes_ids[self.rampage_editing_route_monster_idx].append(dest_id)
+
+    def or_rampage_valid_next_node(self, destination):
+        route = self.or_get_route_dests()
+        if len(route) == 0:
+            return True
+        last = route[-1]
+        if not last.can_pass_through(self.or_co) and len(route) > 1:
+            return False
+        r = [self.or_get_route_routes(i) for i in range(len(self.or_co.monsters()))]
+        if (r):
+            r1 = reduce(concat, r)
+            if r1:
+                used_routes = reduce(concat, r1)
+            else:
+                used_routes = []
+        else:
+            used_routes = []
+
+        open_routes = [i for i in self.map.get_routes_from(last) \
+                       if i.can_go_through() \
+                           and i not in used_routes]
+        all_conns = [i for i in chain([i.place_1 for i in open_routes], [i.place_2 for i in open_routes]) if i not in [j.id for j in route]]
+        return destination.id in all_conns
+
+    def or_get_route_dests(self):
+        return [self.map.get_destination(i) for i in self.rampage_current_routes_ids[self.rampage_editing_route_monster_idx]]
+
+    def or_get_route_routes(self, monster_idx):
+        # TODO: Add spread
+        dests = [self.map.get_destination(i) for i in self.rampage_current_routes_ids[monster_idx]]
+        if len(dests) <= 1:
+            return []
+        routes = []
+        last = dests.pop(0)
+        while len(dests) > 0:
+            next_dest = dests.pop(0)
+            routes.append(self.map.get_route(last, next_dest))
+            last = next_dest
+        return routes
+
+    def or_in_current_route(self, destination):
+        return destination in self.or_get_route_dests()
+
+    def or_validate_route(self, monster_idx):
+        dests = [self.map.get_destination(i) for i in self.rampage_current_routes_ids[monster_idx]]
+        payment = sum([i.current_value() for i in dests]) 
+        if len(dests) == 0:
+            return True, "No routes", payment
+        if not any([self.or_co.id in i.stations for i in dests]):
+            return False, "No token on route", payment
+        # TODO: check for blocked
+        # TODO: check for special rules
+        # TODO: check for length
+        # TODO: check for other routes using
+        # TODO: check for amount of 1 size monsters on cities
+        return True, "", payment
+    
+    def or_validate_all_routes(self):
+        return all([self.or_validate_route(i)[0] for i in range(len(self.or_co.monsters()))])
+    
+    def or_all_routes_value(self):
+        return sum([self.or_validate_route(i)[2] for i in range(len(self.or_co.monsters()))])
+    
+    def act_or_rampage_pay(self):
+        self._or_dividends(self.or_all_routes_value())
+
+    def act_or_rampage_withhold(self):
+        self._or_withhold(self.or_all_routes_value())
 
     def _or_can_buy_any_monster(self):
         can_buy = [i[0] for i in self.or_available_monsters() if self.or_can_buy_monster(i[0])]
@@ -599,6 +688,8 @@ class Game:
             "cubes": self.cubes,
             "monsters": {i[0]: i[1].get_state() for i in enumerate(self.monsters) if len(i[1].get_state()) > 0},
             "phase_sales_remaining": self.phase_sales_remaining,
+            "rampage_editing_route_monster": self.rampage_editing_route_monster_idx,
+            "rampage_current_routes_ids" : self.rampage_current_routes_ids,
         }
         return json.dumps(state)
 
@@ -631,6 +722,8 @@ class Game:
         for i, j in state['monsters'].items():
             self.monsters[int(i)].load_state(j)
         self.phase_sales_remaining = int_or_none(state['phase_sales_remaining'])
+        self.rampage_editing_route_monster_idx = int_or_none(state['rampage_editing_route_monster'])
+        self.rampage_current_routes_ids = state['rampage_current_routes_ids']
 
     def get_hash(self):
         return hash(self.get_state())
