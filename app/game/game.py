@@ -493,6 +493,21 @@ class Game:
             self.start_or_rampage()
 
     def start_or_rampage(self):
+        if len(self.or_co.monsters()) == 0:
+            self._or_withhold(0)
+            return
+
+    def _or_withold(self, amount):
+        self.transfer_cash(amount, self.or_co)
+        self.market.withheld(self.or_co)
+        self.start_or_buy_monsters()
+
+    def _or_dividends(self, amount)
+        amount_per_share = int(amount / 10)
+        for payee in self.or_co.owners:
+            self.transfer_cash(amount_per_share, payee)
+        self.transfer_cash(amount_per_share * self.or_co.shares_in_market, self.or_co)
+        self.market.paid_out(self.or_co)
         self.start_or_buy_monsters()
 
     def _or_can_buy_any_monster(self):
