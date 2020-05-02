@@ -30,13 +30,16 @@ class Monster:
         if self.movement == 0:
             return ""
 
+        if self.movement == 1:
+            return "Starting town only"
+
         result = str(self.movement)
 
         if SpecialRules.spread in self.special_rules:
             result += " spread"
 
         if SpecialRules.infinite_distance in self.special_rules:
-            return "Infinite"
+            return " inf."
 
         return result
 

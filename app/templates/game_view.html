@@ -38,6 +38,40 @@
 {% else %}
 <div id="map_tab" class="tabcontent">
 {% endif %}
+{% if game.game_turn_status.name == "operation_rampage" or game.game_turn_status.name == "operation_rampage_editing_monster" %}
+  <table>
+  {% for m in game.or_co.monsters() %}
+  <tr>
+    {% set monster_idx = loop.index - 1 %}
+    <td><span class={{"active_monster" if monster_idx == game.rampage_editing_route_monster_idx else "inactive_monster"}}>{{m.name}}</span></td>
+    <td>(mvt: {{m.get_move_display()}})</td>
+    <td><form action={{ url_for("or_clear_monster_route", game_id=game_id, monster_idx=monster_idx) }}><input type="submit" value="Clear route" name="clear"/></form></td>
+    <td><form action={{ url_for("or_edit_monster_route", game_id=game_id, monster_idx=monster_idx) }}><input type="submit" value="Edit route" name="edit"/></form></td>
+    {% set route_status = game.or_validate_route(monster_idx) %}
+    <td>{{"OK" if route_status[0] else "Invalid"}} {{route_status[1]}}</td>
+    <td>Pays {{route_status[2]}}</td>
+  </tr>
+  {% endfor %}
+  {% if game.or_validate_all_routes() %}
+  {% set pay_amount = game.or_all_routes_value() %}
+  <tr>
+    <td>Total payment: </td> <td colspan=5>{{ pay_amount }}</td>
+  </tr>
+  <tr>
+    <td colspan=6> 
+      {% if pay_amount > 0 %}
+      <form action={{ url_for("or_pay_full", game_id=game_id) }} >
+        <input type="submit" value="Pay Dividends" name="submit"/>
+      </form>
+      {% endif %}
+      <form action={{ url_for("or_pay_withhold", game_id=game_id) }} >
+        <input type="submit" value="Withhold Dividends" name="submit"/>
+      </form>
+    </td>
+  </tr>
+  {% endif %}
+  </table>
+{% endif %}
 <object type="image/svg+xml" data={{url_for("map_image", game_id=game_id, hash=game.get_hash())}}></object>
 </div>
 

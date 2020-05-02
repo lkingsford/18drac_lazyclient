@@ -2,6 +2,8 @@ import csv
 from flask import url_for
 import graphviz
 import svgwrite
+from functools import reduce
+from operator import concat
 from .game import GameTurnStatus
 
 # Must be generated during query for url_for
@@ -69,18 +71,31 @@ def generate_map(game, game_id):
 
     for destination in destinations:
         color = destination_colors[destination.dest_type]
+        href = ""
+        target = "_top"
+        if game.game_turn_status in [GameTurnStatus.operation_rampage]:
+            if game.or_rampage_valid_next_node(destination):
+                href = url_for("or_add_node_to_route", game_id=game_id, node_id=destination.id)
+                color = "#FF00FF"
+            elif game.or_in_current_route(destination):
+                color = "#FF0000"
+            else:
+                color = "#888888"
+
         if destination.dest_type == "Town":
             graph.node(destination.id,
                     f"<<TABLE>{get_value_row(destination.upgrades, destination.values, destination.station_count)}</TABLE>>",
                     xlabel=destination.display_name,
-                    color=destination_colors[destination.dest_type],
+                    color=color,
                     style="filled",
+                    href=href,
+                    target=target,
                     shape=destination_shapes[destination.dest_type],
                     fontcolor=destination_text_colors[destination.dest_type],
                     fontsize = destination_text_size[destination.dest_type])
         else:
             max_stations = max([i or 0 for i in destination.station_count])
-            label = "<<TABLE>"
+            label = f"<<TABLE HREF='{href}' TARGET='_top'>"
             label += "<TR>"
             label += f'<TD>{destination.display_name}</TD>'
             label += "</TR>"
@@ -104,10 +119,12 @@ def generate_map(game, game_id):
             label += "</TABLE></TD></TR></TABLE>>"
             graph.node(destination.id,
                     label,
-                    color=destination_colors[destination.dest_type],
+                    color=color,
                     style="filled",
                     shape=destination_shapes[destination.dest_type],
                     fontcolor=destination_text_colors[destination.dest_type],
+                    href=href,
+                    target=target,
                     fontsize = destination_text_size[destination.dest_type])
 
     route_colors = {"red":"#cc0000",
@@ -125,51 +142,88 @@ def generate_map(game, game_id):
                     "blue":"1",
                     "yellow": "1",
                     "PHASE": "0.5"}
+    route_rampage_colors = {"this_route":"#ff0000",
+                            "available":"#000000",
+                            "other_route":"#00ff00"}
 
-    clear_routes = []
-    clear_stage = game.game_turn_status == GameTurnStatus.operation_clear_track
-    if clear_stage:
-        clear_routes = list(game.map.get_clearing_routes(game.or_co))
-
-    for route in routes:
-        special_clear_format = route in clear_routes
-        pen_thick = 3 if special_clear_format else 1
-        node_size = .4 if special_clear_format else (.05 if clear_stage else .1)
-        href = "" if not special_clear_format else url_for('or_clear_route', game_id=game_id, route_id=route.id)
-
-        start = last_node = route.place_1
-        end = route.place_2
-        for i in range(route.amount):
-            id = f"{start}_{end}_{i}"
-            label = str(route.cost or "")
-            # Length weight is COST of lengthening - high = short
-            length_weight = 8 if i > 0 else route_weight[route.color]
-            min_len = "5" if i == 0 else "0"
-            filled = i >= (route.cleared)
-            graph.node(id,
-                    label,
-                    color=route_colors[route.color],
-                    fontcolor=route_text_colors[route.color],
-                    fontsize="6",
-                    shape="box",
-                    width=str(node_size),
-                    height=str(node_size),
-                    fixedsize="true",
-                    href=href,
-                    target="_top",
-                    style="filled" if filled else "")
-            graph.edge(last_node,
-                    id,
-                    color=route_colors[route.color],
+    if game.game_turn_status in [GameTurnStatus.operation_rampage]:
+        # Rampage map is different - no mid nodes
+        for route in routes:
+            if not route.can_go_through():
+                continue
+            pen_thick = 1
+            node_size = .1
+            start = route.place_1
+            end = route.place_2
+            id = f"{start}_{end}"
+            length_weight = route_weight[route.color]
+            min_len = "5"
+            try:
+                # Not good... this should be rejected in code review
+                current_route=reduce(concat, game.or_get_route_routes(game.rampage_editing_route_monster_idx))
+            except TypeError:
+                current_route=[]
+            try:
+                other_routes=reduce(concat, reduce(concat, [game.or_get_route_routes(i) for i in range(len(game.or_co.monsters())) if i != game.rampage_editing_route_monster_idx]))
+            except TypeError:
+                other_routes=[]
+            color=route_rampage_colors["available"]
+            if route in other_routes:
+                color = route_rampage_colors["other_route"]
+            if route in current_route:
+                color = route_rampage_colors["this_route"]
+            graph.edge(start,
+                    end,
+                    color=color,
                     minlen=min_len,
                     penwidth=str(pen_thick),
                     length=str(length_weight))
-            last_node = id
-        graph.edge(last_node, end,
-                color=route_colors[route.color],
-                minlen="5",
-                penwidth=str(pen_thick),
-                length=str(route_weight[route.color]))
+
+    else:
+        clear_routes = []
+        clear_stage = game.game_turn_status == GameTurnStatus.operation_clear_track
+        if clear_stage:
+            clear_routes = list(game.map.get_clearing_routes(game.or_co))
+
+        for route in routes:
+            special_clear_format = route in clear_routes
+            pen_thick = 3 if special_clear_format else 1
+            node_size = .4 if special_clear_format else (.05 if clear_stage else .1)
+            href = "" if not special_clear_format else url_for('or_clear_route', game_id=game_id, route_id=route.id)
+
+            start = last_node = route.place_1
+            end = route.place_2
+            for i in range(route.amount):
+                id = f"{start}_{end}_{i}"
+                label = str(route.cost or "")
+                # Length weight is COST of lengthening - high = short
+                length_weight = 8 if i > 0 else route_weight[route.color]
+                min_len = "5" if i == 0 else "0"
+                filled = i >= (route.cleared)
+                graph.node(id,
+                        label,
+                        color=route_colors[route.color],
+                        fontcolor=route_text_colors[route.color],
+                        fontsize="6",
+                        shape="box",
+                        width=str(node_size),
+                        height=str(node_size),
+                        fixedsize="true",
+                        href=href,
+                        target="_top",
+                        style="filled" if filled else "")
+                graph.edge(last_node,
+                        id,
+                        color=route_colors[route.color],
+                        minlen=min_len,
+                        penwidth=str(pen_thick),
+                        length=str(length_weight))
+                last_node = id
+            graph.edge(last_node, end,
+                    color=route_colors[route.color],
+                    minlen="5",
+                    penwidth=str(pen_thick),
+                    length=str(route_weight[route.color]))
     svg_file = graph.pipe(format="svg")
     # Hacky, but we want the url to be correct for the image
     # Basically, graphviz's paths are different to the ones available on the

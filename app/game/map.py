@@ -36,13 +36,23 @@ class Map():
                 return True
             occ_station_count = len([i for i in self.stations if self.game.companies[i].floated])
             return cur_station_count > occ_station_count
-        
+
         def buy_office(self, company):
             assert company.tokens > 0
             assert company.cash >= company.token_cost()
             self.game.transfer_cash(company.token_cost(), None, company)
             company.tokens -= 1
             self.stations.append(company.id)
+        
+        def current_value(self):
+            cur_val = None
+            idx = self.game.phase if self.dest_type == 'Export' else self.upgrades
+            while cur_val is None:
+                if idx < 0:
+                    return 0
+                cur_val = self.values[self.upgrades]
+                idx -= 1
+            return cur_val
 
         def get_state(self):
             if len(self.stations) > 0 or \
@@ -75,6 +85,9 @@ class Map():
                 return {'cleared': self.cleared}
             else:
                 return None
+
+        def can_go_through(self):
+            return self.amount == 0 or self.cleared == self.amount
 
         def load_state(self, state):
             self.cleared = int(state['cleared'])
@@ -118,7 +131,7 @@ class Map():
         result = set()
         while queue:
             dest = queue.pop()
-            routes = self._get_routes_from(dest)
+            routes = self.get_routes_from(dest)
             open_routes = [i for i in routes if i.cleared >= i.amount]
             if is_routes:
                 result |= set([i for i in routes if store_condition(i)])
@@ -144,8 +157,11 @@ class Map():
             lambda i: company.id not in i.stations \
                         and len(i.stations) < (i.station_count[i.upgrades] or 0))
 
-    def _get_routes_from(self, dest):
+    def get_routes_from(self, dest):
         return [i for i in self.routes if (i.place_1 == dest.id) or (i.place_2 == dest.id)]
+
+    def get_route(self, a, b):
+        return [i for i in self.routes if (i.place_1 == a.id and i.place_2 == b.id) or (i.place_2 == a.id and i.place_1 == b.id)]
 
     def clear_route(self, company, route):
         assert company.cash >= (route.cost or 0)
