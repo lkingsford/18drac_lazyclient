@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from app.storage.storage import Storage
 
 class Sqlite(Storage):
@@ -21,6 +22,10 @@ class Sqlite(Storage):
             """
         db = self.db()
         csr = db.cursor()
+        csr.execute(create_tables_script)
+        create_tables_script = """
+            CREATE TABLE game_log (game_id INT NOT NULL, func_name TEXT, kwargs TEXT);
+            """
         csr.execute(create_tables_script)
         db.commit()
 
@@ -51,3 +56,9 @@ class Sqlite(Storage):
         csr = db.cursor()
         csr.execute("""SELECT rowid FROM game""")
         return [row[0] for row in csr.fetchall()]
+    
+    def log_action(self, game_id, func_name, kwargs):
+        db = self.db()
+        csr = db.cursor()
+        csr.execute("""INSERT INTO game_log (game_id, func_name, kwargs) VALUES (?, ?, ?);""", (game_id, func_name, json.dumps(kwargs)))
+        db.commit()

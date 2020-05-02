@@ -7,3 +7,6 @@ class Storage:
 
     def get_games(self):
         raise NotImplementedError()
+
+    def log_action(self, game_id, kwargs):
+        raise NotImplementedError()
