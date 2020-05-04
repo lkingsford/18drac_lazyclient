@@ -436,18 +436,18 @@ class Game:
 # OR
     def or_start(self):
         self.ors_this_turn = self.get_phase_ors()
-        self.or_next_sub()
         self.or_subnumber = 0
+        self.or_next_sub()
 
     def or_next_sub(self):
         # Next sub turn (or2.2 to or2.3)
-        self._or_pay_privates()
         self.or_subnumber += 1
         if self.or_subnumber > self.ors_this_turn:
             self.sr_start()
             return
         for co in self.companies.values():
             co.acted_this_or = False
+        self._or_pay_privates()
         self.or_next_co()
 
     def or_next_co(self):
