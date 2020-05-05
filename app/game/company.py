@@ -1,10 +1,10 @@
 class Company:
-    def __init__(self, game, id, display_name, private, color):
+    def __init__(self, game, id, name, private, color):
         self.started = False
         self.floated = False
         self.cash = 0
         self.stations_remaining = 4
-        self.display_name = display_name
+        self.name = name
         self.id = id
         self.color = color
         self.ipo = None

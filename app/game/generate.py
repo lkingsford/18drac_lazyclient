@@ -85,7 +85,7 @@ def generate_map(game, game_id):
         if destination.dest_type == "Town":
             graph.node(destination.id,
                     f"<<TABLE>{get_value_row(destination.upgrades, destination.values, destination.station_count)}</TABLE>>",
-                    xlabel=destination.display_name,
+                    xlabel=destination.name,
                     color=color,
                     style="filled",
                     href=href,
@@ -97,7 +97,7 @@ def generate_map(game, game_id):
             max_stations = max([i or 0 for i in destination.station_count])
             label = f"<<TABLE HREF='{href}' TARGET='_top'>"
             label += "<TR>"
-            label += f'<TD>{destination.display_name}</TD>'
+            label += f'<TD>{destination.name}</TD>'
             label += "</TR>"
             if max_stations > 0:
                 label += "<TR><TD><TABLE><TR>"

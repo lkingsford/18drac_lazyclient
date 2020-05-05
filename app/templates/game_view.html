@@ -137,7 +137,7 @@
         <table>
           <tr>
             <td><img src= {{ game.companies[c].token_img }} width="32px" height = "32px"/></td>
-            <td colspan=4>{{ game.companies[c].display_name }}</td>
+            <td colspan=4>{{ game.companies[c].name }}</td>
           </tr>
           <tr>
             <td colspan=5 style="background-color: {{game.companies[c].color}}" ;></td>
@@ -253,38 +253,7 @@
   </ul>
   {% endif %}
   {% for p in game.privates %}
-    <div class="company_column"><div class="company_card private_card">
-      <table>
-        <tr>
-          <td colspan=2><b>{{p.name}}</b></td>
-        </tr>
-        <tr>
-          <td>Base cost: {{p.base_cost}}</td>
-          <td>{% if p.revenue > 0 %}Revenue: {{p.revenue}} {% endif %}</td>
-        </tr>
-        <tr>
-          <td colspan=2 class="description">{{p.description}}</td>
-        </tr>
-      </table>
-      {% if p.owner is not none %}
-        Owned by {{p.owner.name}}
-      {% else %}
-      <ul>
-        {% for b in p.bids %}
-        <li>{{b[0].name}} bid {{b[1]}}</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-      {% if game.pa_can_buy(p) %}
-      <form action={{ url_for("pa_buy", game_id=game_id) }}><input type="submit" value="Buy"/></form>
-      {% endif %}
-      {% if game.pa_can_pass(p) %}
-      <form action={{ url_for("pa_pass", game_id=game_id) }}><input type="submit" value="Pass"/></form>
-      {% endif %}
-      {% if game.pa_can_bid(p) %}
-      <form action={{ url_for("pa_bid", game_id=game_id, private_id=p.id) }} method='POST'><input type="submit" value="Bid"/><input type="text" name="bid_amt" value={{ p.next_min_bid_amount(game) }} /></form>
-      {% endif %}
-    </div></div>
+    {% include "private_card.html" %}
   {% endfor %}
   </div>
 </section>

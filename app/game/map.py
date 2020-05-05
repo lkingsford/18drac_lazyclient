@@ -6,12 +6,12 @@ def int_or_none(s):
 
 class Map():
     class Destination:
-        def __init__(self, game, id, display_name, dest_type, values, station_count):
+        def __init__(self, game, id, name, dest_type, values, station_count):
             self.game = game
             self.upgrades = 0
             self.stations = []
             self.id = id
-            self.display_name = display_name
+            self.name = name
             self.dest_type = dest_type
             self.values = values
             self.station_count = station_count
@@ -101,12 +101,12 @@ class Map():
     def load_map(self, destinations, routes, companies):
         for row in destinations:
             _id = row[0]
-            display_name = row[1]
+            name = row[1]
             dest_type = row[2]
             values=[int_or_none(row[3]), int_or_none(row[4]), int_or_none(row[5]), int_or_none(row[6])]
             station_count=[int_or_none(row[7]), int_or_none(row[8]), int_or_none(row[9]), int_or_none(row[10])]
             reserved=int_or_none(row[11])
-            destination = Map.Destination(self.game, _id, display_name, dest_type, values, station_count,)
+            destination = Map.Destination(self.game, _id, name, dest_type, values, station_count,)
             self.destinations.append(destination)
         for row in routes:
             place_1 = row[0]

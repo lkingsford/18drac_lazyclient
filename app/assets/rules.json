@@ -4,5 +4,6 @@
     "min_bid_increment":2,
     "monster_limits":[null, 6, 5, 4, 3, 3],
     "monster_sales_for_phase": [null, 12, 10, 8, 6, 0],
-    "extra_phase_available": [null, null, null, null, 5, null]
+    "extra_phase_available": [null, null, null, null, 5, null],
+    "can_buy_private": [false, false, true, true, true, false]
 }
