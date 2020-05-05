@@ -162,6 +162,10 @@ class Game:
     def increment_phase(self):
         self.phase += 1
         self.phase_sales_remaining = self.monster_sales_for_phase[self.phase]
+        # Eat expired monsters
+        for m in self.monsters:
+            if m.expires == self.phase:
+                m.owner = None
 
     def get_phase_ors(self):
         return {
