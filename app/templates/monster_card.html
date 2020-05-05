@@ -1,0 +1,34 @@
+<div class="company_column"><div class="company_card">
+    <small>Phase {{ monster[0].phase }}</small>
+    <h3> {{ monster[0].name }} x{{monster[1]}}</h3>
+    <div>
+    {% if monster[0].expires %}
+    Eaten in phase {{monster[0].expires}}
+    {% endif %}
+    </div>
+    <div>
+    Moves: {{monster[0].get_move_display()}}
+    </div>
+    <div>
+    Costs: {{monster[0].cost}}
+    </div>
+    <ul>
+    {% for rule in monster[0].get_special_rules() %}
+    <li> {{rule}} </li>
+    {% endfor %}
+    </ul>
+    {% if monster[0].get_trades() %}
+    Can be traded for: {{ monster[0].get_trades() }} when available
+    {% endif %}
+    {% if game.or_can_buy_monster(monster[0]) %}
+    <form action={{ url_for("or_buy_monster", monster_id=monster[0].id, game_id=game_id, in_market=in_market) }}>
+      <input type="submit" value="Buy Monster"/>
+    </form>
+    {% endif %}
+
+    {% if game.game_turn_status.name == "operation_monster_limit_discard" and monster[0].owner == game.or_co %}
+    <form action={{ url_for("or_discard_monster", monster_id=monster[0].id, game_id=game_id) }}>
+      <input type="submit" value="Discard Monster"/>
+    </form>
+    {% endif %}
+</div></div>

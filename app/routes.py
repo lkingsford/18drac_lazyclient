@@ -141,10 +141,16 @@ def or_buy_office(game, game_id, dest_id):
     game.act_or_buy_office(dest_id)
     return redirect(url_for("view", game_id=game_id))
 
-@app.route('/game/<game_id>/or_buy_monster/<monster_id>')
+@app.route('/game/<game_id>/or_buy_monster/<monster_id>/<in_market>')
 @bind_game(save=True)
-def or_buy_monster(game, game_id, monster_id):
-    game.act_or_buy_monster(monster_id)
+def or_buy_monster(game, game_id, monster_id, in_market):
+    game.act_or_buy_monster(monster_id, in_market)
+    return redirect(url_for("view", game_id=game_id))
+
+@app.route('/game/<game_id>/or_discard_monster/<monster_id>')
+@bind_game(save=True)
+def or_discard_monster(game, game_id, monster_id):
+    game.act_or_discard_monster(monster_id)
     return redirect(url_for("view", game_id=game_id))
 
 @app.route('/game/<game_id>/rampage/pay_full')
