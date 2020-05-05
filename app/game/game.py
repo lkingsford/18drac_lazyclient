@@ -173,12 +173,15 @@ class Game:
         self.phase_sales_remaining = self.monster_sales_for_phase[self.phase]
         # Eat expired monsters
         for m in self.monsters:
-            if m.expires == self.phase:
+            if m.expires <= self.phase:
                 m.owner = None
                 m.in_market = False
         if self.game_turn_status in [Game.GameTurnStatus.operation_buy_monsters]:
             self.start_or_force_discard()
-
+        # Close expired companies
+        for p in self.privates:
+            if p.open and p.closes_on <= self.phase:
+                p.close()
 
     def get_phase_ors(self):
         return {
