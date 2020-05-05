@@ -692,7 +692,7 @@ class Game:
         if self.phase == self.extra_phase_available[self.phase]:
             phases_available.append(self.extra_phase_available[self.phase])
         return self.game_turn_status == GameTurnStatus.operation_buy_monsters and \
-               (monster.phase in phases_available) and \
+               ((monster.phase in phases_available) or (monster.in_market)) and \
                (monster.owner == None) and \
                (self.or_co.cash >= monster.cost)
 
@@ -701,8 +701,9 @@ class Game:
         assert self.or_can_buy_monster(monster)
         assert monster
         monster.owner = self.or_co
+        monster.in_market = False
         self.transfer_cash(monster.cost, None, self.or_co)
-        if in_market:
+        if in_market == "False":
             self.phase_sales_remaining -= 1
         if self.monster_sales_for_phase[self.phase] > 0 and \
            self.phase_sales_remaining == -1:
