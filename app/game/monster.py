@@ -25,6 +25,7 @@ class Monster:
         self.special_rules = set(special_rules)
         self.trade_cost = trade_cost
         self.owner = None
+        self.in_market = False
 
     def get_move_display(self):
         if self.movement == 0:
@@ -70,10 +71,11 @@ class Monster:
         return ", ".join([f"{next(iter([j.name for j in self.game.monsters if j.id == i[0]]))} ({i[1]} pts)" for i in self.trade_cost])
 
     def get_state(self):
-        if self.owner == None:
+        if self.owner == None and self.in_market == False:
             return ""
         else:
-            return {"owner": self.owner.id}
+            return {"owner": self.owner.id if self.owner else None, "in_market": self.in_market}
 
     def load_state(self, state):
-        self.owner = self.game.companies[state["owner"]]
+        self.owner = self.game.companies[state["owner"]] if state["owner"] else None
+        self.in_market = state["in_market"]

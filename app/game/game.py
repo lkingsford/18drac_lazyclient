@@ -31,6 +31,7 @@ class Game:
         operation_buy_monsters = 7
         operation_force_sell_stock_round = 8
         bankruptcy = 9
+        operation_monster_limit_discard = 10
 
     def __init__(self, load_state = None):
         with open("app/assets/Market.csv") as market_file:
@@ -75,7 +76,11 @@ class Game:
         self.turn_number = 0
         self.ors_this_turn = 0
         self.or_subnumber = 0
+        # Company operating right now
         self.or_co = None
+        # ... but if we had to jump to another company (for ex. discarding) -
+        # this is the one to go back to
+        self.real_or_co = None
         self.cubes = {'yellow':0, 'green':0, 'blue':0, 'red':0}
         self.phase_sales_remaining = 0
         self.rampage_editing_route_monster_idx = None
@@ -110,6 +115,7 @@ class Game:
         self.ors_this_turn = 0
         self.or_subnumber = 0
         self.or_co = None
+        self.real_or_co = None
         self.phase_sales_remaining = self.monster_sales_for_phase[0]
 
     def transfer_cash(self, quantity, to_party, from_party = None):
@@ -141,7 +147,8 @@ class Game:
             Game.GameTurnStatus.operation_rampage: 'map',
             Game.GameTurnStatus.operation_buy_monsters: "monster",
             Game.GameTurnStatus.operation_force_sell_stock_round: 'fronts',
-            Game.GameTurnStatus.bankruptcy: 'fronts'
+            Game.GameTurnStatus.bankruptcy: 'fronts',
+            Game.GameTurnStatus.operation_monster_limit_discard: 'monster'
         }[self.game_turn_status]
 
     def round_name(self):
@@ -156,7 +163,8 @@ class Game:
             # todo: change once there's a monster screen
             Game.GameTurnStatus.operation_buy_monsters: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.display_name if self.or_co else ""} (Buy monsters)',
             Game.GameTurnStatus.operation_force_sell_stock_round: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} {self.or_co.display_name if self.or_co else ""} (Force sell)',
-            Game.GameTurnStatus.bankruptcy: 'Game over'
+            Game.GameTurnStatus.bankruptcy: 'Game over',
+            Game.GameTurnStatus.operation_monster_limit_discard: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.display_name if self.or_co else ""} (Force discard monsters)'
         }[self.game_turn_status]
 
     def increment_phase(self):
@@ -166,6 +174,10 @@ class Game:
         for m in self.monsters:
             if m.expires == self.phase:
                 m.owner = None
+                m.in_market = False
+        if self.game_turn_status in [Game.GameTurnStatus.operation_buy_monsters]:
+            self.start_or_force_discard()
+        
 
     def get_phase_ors(self):
         return {
@@ -193,9 +205,10 @@ class Game:
             Game.GameTurnStatus.operation_clear_track: '',
             Game.GameTurnStatus.operation_buy_office: f'{self.or_co.display_name} has {self.or_co.cash}pts of Blood Remaining' if self.or_co else '',
             Game.GameTurnStatus.operation_rampage: f'{self.or_co.display_name} has {self.or_co.cash}pts of Blood Remaining' if self.or_co else '',
-            Game.GameTurnStatus.operation_buy_monsters: f'{self.or_co.display_name} has {self.or_co.cash}pts of Blood Remaining. Owns {len(self.or_co.monsters())}/{self.monster_limits[self.phase]} monsters.' if self.or_co else '',
+            Game.GameTurnStatus.operation_buy_monsters: f'{self.or_co.display_name} has {self.or_co.cash}pts of Blood Remaining. Owns {self.or_co.monster_limit_count()}/{self.monster_limits[self.phase]} monsters.' if self.or_co else '',
             Game.GameTurnStatus.operation_force_sell_stock_round: '',
-            Game.GameTurnStatus.bankruptcy: ''
+            Game.GameTurnStatus.bankruptcy: '',
+            Game.GameTurnStatus.operation_monster_limit_discard: ''
         }[self.game_turn_status]
 
 # PRIVATE AUCTION
@@ -319,6 +332,7 @@ class Game:
             if self.turn_number == 1 \
             else Game.GameTurnStatus.stock_round
         self.current_player = self.priority
+        self.or_co = None
 
     def sr_show_buy_president(self, co):
         if self.game_turn_status not in [Game.GameTurnStatus.first_stock_round,
@@ -660,9 +674,15 @@ class Game:
         monsters = [(next(iter([i for i in all_relevant if i.id == _id])), len([i for i in all_relevant if i.id == _id])) for _id in unique_ids]
         return monsters
 
+    def or_discarded_monsters(self):
+        all_relevant = [i for i in self.monsters if i.in_market]
+        unique_ids = {i.id for i in all_relevant}
+        monsters = [(next(iter([i for i in all_relevant if i.id == _id])), len([i for i in all_relevant if i.id == _id])) for _id in unique_ids]
+        return monsters
+
     def or_can_buy_monster(self, monster):
         # todo: check monster limit
-        if self.or_co.at_monster_limit():
+        if self.or_co and self.or_co.at_monster_limit():
             return False
         phases_available = []
         if self.monster_sales_for_phase and (self.phase_sales_remaining == 0):
@@ -676,18 +696,40 @@ class Game:
                (monster.owner == None) and \
                (self.or_co.cash >= monster.cost)
 
-    def act_or_buy_monster(self, monster_id):
+    def act_or_buy_monster(self, monster_id, in_market):
         monster = next(iter([i for i in self.monsters if i.id == monster_id and i.owner is None]))
         assert self.or_can_buy_monster(monster)
         assert monster
         monster.owner = self.or_co
         self.transfer_cash(monster.cost, None, self.or_co)
-        self.phase_sales_remaining -= 1
+        if in_market:
+            self.phase_sales_remaining -= 1
         if self.monster_sales_for_phase[self.phase] > 0 and \
            self.phase_sales_remaining == -1:
             self.increment_phase()
-        if not self._or_can_buy_any_monster():
-            self.or_next_co()
+        if self.game_turn_status == Game.GameTurnStatus.operation_buy_monsters:
+            if not self._or_can_buy_any_monster():
+                self.or_next_co()
+    
+    def start_or_force_discard(self):
+        self.real_or_co = self.or_co
+        self.game_turn_status = Game.GameTurnStatus.operation_monster_limit_discard
+        self.or_next_force_discard()
+    
+    def or_next_force_discard(self):
+        all_cos = self.market.all_company_order(self)
+        for co in all_cos:
+            if co.monster_limit_count() > self.monster_limits[self.phase]:
+                self.or_co = co
+                return
+        self.or_co = self.real_or_co
+        self.game_turn_status = Game.GameTurnStatus.operation_buy_monsters
+    
+    def act_or_discard_monster(self, monster_id):
+        monster = next(iter([i for i in self.or_co.monsters() if i.id == monster_id]))
+        monster.owner = None
+        monster.in_market = True
+        self.or_next_force_discard()
 
 # State
     def get_state(self):
@@ -709,6 +751,7 @@ class Game:
             "ors_this_turn": self.ors_this_turn,
             "or_subnumber": self.or_subnumber,
             "or_co": self.or_co.id if self.or_co is not None else None,
+            "real_or_co": self.real_or_co.id if self.real_or_co is not None else None,
             "map": self.map.get_state(),
             "cubes": self.cubes,
             "monsters": {i[0]: i[1].get_state() for i in enumerate(self.monsters) if len(i[1].get_state()) > 0},
@@ -742,6 +785,7 @@ class Game:
         self.ors_this_turn = state["ors_this_turn"]
         self.or_subnumber = state["or_subnumber"]
         self.or_co = self.companies[state["or_co"]] if state['or_co'] else None
+        self.real_or_co = self.companies[state["real_or_co"]] if state['real_or_co'] else None
         self.map.load_state(state["map"])
         self.cubes = state['cubes']
         for i, j in state['monsters'].items():

@@ -29,7 +29,7 @@ class Company:
         self.buy_share_ipo(player)
         self.buy_share_ipo(player)
 
-    def float(self):
+    def float_co(self):
         self.cash = 10 * self.ipo
         self.floated = True
 
@@ -74,8 +74,8 @@ class Company:
         self.owners.append(player)
         self.game.transfer_cash(self.ipo, None, player)
         self.adjust_president()
-        if not self.floated and len(self.owners) >= 6:
-            self.float()
+        if not self.floated and self.shares_in_ipo <= 4:
+            self.float_co()
 
     def buy_share_market(self, player):
         assert self.shares_in_market > 0, "Not enough shares in market"
@@ -153,7 +153,18 @@ class Company:
             return ", ".join(holdings)
 
     def monsters(self):
-        return [i for i in self.game.monsters if i.owner == self]
+        return [i for i in self.game.monsters if i.owner == self] 
+
+    def grouped_monsters(self):
+        monsters = self.monsters()
+        unique_ids = {i.id for i in monsters}
+        return [(next(iter([i for i in monsters if i.id == _id])), len([i for i in monsters if i.id == _id])) for _id in unique_ids]
 
     def at_monster_limit(self):
-        return len(self.monsters()) >= self.game.monster_limits[self.game.phase]
+        return self.monster_limit_count() >= self.game.monster_limits[self.game.phase]
+    
+    def monster_limit_count(self):
+        return len(self.monsters())
+    
+    def monster_count(self):
+        return len(self.monsters())

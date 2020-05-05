@@ -89,65 +89,38 @@
   {% if game.monster_sales_for_phase[game.phase] %}
     Remaining monsters in phase: {{  game.phase_sales_remaining }}
   {% endif %}
+  {% if game.or_co != None %}
+    <H2>Current company</H2>
+    <div class="company_row">
+      {% if game.or_co.monster_count() == 0 %}
+        No owned monsters
+      {% else %}
+        {% for monster in game.or_co.grouped_monsters() %}
+          {% include "monster_card.html" %}
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% endif %}
+  {% set in_market = True %}
+  {% if game.or_discarded_monsters() %}
+    <h2> Market </h2>
+      <div class="company_row">
+      {% for monster in game.or_discarded_monsters() %}
+        {% include "monster_card.html" %}
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% set in_market = False %}
   <H2> Available Monsters </H2>
   <div class="company_row">
   {% for monster in game.or_available_monsters() %}
-    <div class="company_column"><div class="company_card">
-    <small>Phase {{ monster[0].phase }}</small>
-    <h3> {{ monster[0].name }} x{{monster[1]}}</h3>
-    <div>
-    {% if monster[0].expires %}
-    Eaten in phase {{monster[0].expires}}
-    {% endif %}
-    </div>
-    <div>
-    Moves: {{monster[0].get_move_display()}}
-    </div>
-    <div>
-    Costs: {{monster[0].cost}}
-    </div>
-    <ul>
-    {% for rule in monster[0].get_special_rules() %}
-    <li> {{rule}} </li>
-    {% endfor %}
-    </ul>
-    {% if monster[0].get_trades() %}
-    Can be traded for: {{ monster[0].get_trades() }} when available
-    {% endif %}
-    {% if game.or_can_buy_monster(monster[0]) %}
-    <form action={{ url_for("or_buy_monster", monster_id=monster[0].id, game_id=game_id) }}>
-      <input type="submit" value="Buy Monster"/>
-    </form>
-    {% endif %}
-    </div></div>
+    {% include "monster_card.html" %}
   {% endfor %}
   </div>
   <H2> Future Monsters </H2>
   <div class="company_row">
   {% for monster in game.or_future_monsters() %}
-    <div class="company_column"><div class="company_card">
-    <small>Phase {{ monster[0].phase }}</small>
-    <h3> {{ monster[0].name }} x{{monster[1]}}</h3>
-    <div>
-    {% if monster[0].expires %}
-    Eaten in phase {{monster[0].expires}}
-    {% endif %}
-    </div>
-    <div>
-    Moves: {{monster[0].get_move_display()}}
-    </div>
-    <div>
-    Costs: {{monster[0].cost}}
-    </div>
-    <ul>
-    {% for rule in monster[0].get_special_rules() %}
-    <li> {{rule}} </li>
-    {% endfor %}
-    </ul>
-    {% if monster[0].get_trades() %}
-    Can be traded for: {{ monster[0].get_trades() }} when available
-    {% endif %}
-    </div></div>
+    {% include "monster_card.html" %}
   {% endfor %}
   </div>
 </div>

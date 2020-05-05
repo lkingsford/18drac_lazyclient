@@ -111,3 +111,11 @@ class Market:
             return None
         highest_spot = max(all_spots, key=lambda i: i.price + i.x / 100)
         return next(iter([i for i in highest_spot.companies if not i.acted_this_or]))
+
+    def all_company_order(self, game):
+        cos = [i for i in game.companies.values() if i.public and i.floated]
+        cos.sort(key=lambda i: self.get_company_spot(i).price + \
+             self.get_company_spot(i).x / 100 + \
+            self.get_company_spot(i).y / 1000 + \
+            (20 - self.get_company_spot(i).companies.index(i) / 10000), reverse=True)
+        return cos
