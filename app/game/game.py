@@ -59,6 +59,7 @@ class Game:
             self.monster_limits = rules['monster_limits']
             self.monster_sales_for_phase = rules['monster_sales_for_phase']
             self.extra_phase_available = rules['extra_phase_available']
+            self.can_buy_private = rules['can_buy_private']
         with open("app/assets/monsters.csv", encoding="utf8") as monsters_file:
             monsters = csv.reader(monsters_file)
             self.monsters = []
@@ -134,7 +135,7 @@ class Game:
         self.companies = {i[0]: Company(self, i[0], i[1], i[3], i[4]) for i in companies}
 
     def load_privates(self, privates):
-        self.privates = [PrivateCompany(i[0], i[1], int(i[2]), int(i[3]), i[5]) for i in privates]
+        self.privates = [PrivateCompany(i[0], i[1], int(i[2]), int(i[3]), i[5], i[6]) for i in privates]
 
     def start_on(self):
         return {
@@ -157,14 +158,14 @@ class Game:
             Game.GameTurnStatus.private_auction_bid: 'AA',
             Game.GameTurnStatus.first_stock_round: 'SR1',
             Game.GameTurnStatus.stock_round: f'SR{self.turn_number}',
-            Game.GameTurnStatus.operation_clear_track: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.display_name if self.or_co else ""} (Clear Track)',
-            Game.GameTurnStatus.operation_buy_office: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.display_name if self.or_co else ""} (Buy Office)',
-            Game.GameTurnStatus.operation_rampage: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.display_name if self.or_co else ""} (RAMPAGE!)',
+            Game.GameTurnStatus.operation_clear_track: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.name if self.or_co else ""} (Clear Track)',
+            Game.GameTurnStatus.operation_buy_office: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.name if self.or_co else ""} (Buy Office)',
+            Game.GameTurnStatus.operation_rampage: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.name if self.or_co else ""} (RAMPAGE!)',
             # todo: change once there's a monster screen
-            Game.GameTurnStatus.operation_buy_monsters: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.display_name if self.or_co else ""} (Buy monsters)',
-            Game.GameTurnStatus.operation_force_sell_stock_round: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} {self.or_co.display_name if self.or_co else ""} (Force sell)',
+            Game.GameTurnStatus.operation_buy_monsters: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.name if self.or_co else ""} (Buy monsters)',
+            Game.GameTurnStatus.operation_force_sell_stock_round: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} {self.or_co.name if self.or_co else ""} (Force sell)',
             Game.GameTurnStatus.bankruptcy: 'Game over',
-            Game.GameTurnStatus.operation_monster_limit_discard: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.display_name if self.or_co else ""} (Force discard monsters)'
+            Game.GameTurnStatus.operation_monster_limit_discard: f'OR{self.turn_number}.{self.or_subnumber}/{self.ors_this_turn} - {self.or_co.name if self.or_co else ""} (Force discard monsters)'
         }[self.game_turn_status]
 
     def increment_phase(self):
@@ -177,7 +178,7 @@ class Game:
                 m.in_market = False
         if self.game_turn_status in [Game.GameTurnStatus.operation_buy_monsters]:
             self.start_or_force_discard()
-        
+
 
     def get_phase_ors(self):
         return {
@@ -203,9 +204,9 @@ class Game:
             Game.GameTurnStatus.first_stock_round: '',
             Game.GameTurnStatus.stock_round: '',
             Game.GameTurnStatus.operation_clear_track: '',
-            Game.GameTurnStatus.operation_buy_office: f'{self.or_co.display_name} has {self.or_co.cash}pts of Blood Remaining' if self.or_co else '',
-            Game.GameTurnStatus.operation_rampage: f'{self.or_co.display_name} has {self.or_co.cash}pts of Blood Remaining' if self.or_co else '',
-            Game.GameTurnStatus.operation_buy_monsters: f'{self.or_co.display_name} has {self.or_co.cash}pts of Blood Remaining. Owns {self.or_co.monster_limit_count()}/{self.monster_limits[self.phase]} monsters.' if self.or_co else '',
+            Game.GameTurnStatus.operation_buy_office: f'{self.or_co.name} has {self.or_co.cash}pts of Blood Remaining' if self.or_co else '',
+            Game.GameTurnStatus.operation_rampage: f'{self.or_co.name} has {self.or_co.cash}pts of Blood Remaining' if self.or_co else '',
+            Game.GameTurnStatus.operation_buy_monsters: f'{self.or_co.name} has {self.or_co.cash}pts of Blood Remaining. Owns {self.or_co.monster_limit_count()}/{self.monster_limits[self.phase]} monsters.' if self.or_co else '',
             Game.GameTurnStatus.operation_force_sell_stock_round: '',
             Game.GameTurnStatus.bankruptcy: '',
             Game.GameTurnStatus.operation_monster_limit_discard: ''
@@ -484,6 +485,19 @@ class Game:
         else:
             self.or_next_sub()
 
+    def or_can_buy_private(self, private):
+        if not self.can_buy_private[self.phase]:
+            return False
+        if not self.or_co:
+            return False
+        if not self.or_co.public:
+            return False
+        if not private.open:
+            return False
+        if private.owner in self.players:
+            return True
+        return False
+
     def _or_pay_privates(self):
         for i in self.privates:
             if i.open:
@@ -625,13 +639,13 @@ class Game:
         # TODO: check for special rules
         # TODO: check for other routes using
         return True, "", payment
-    
+
     def or_validate_all_routes(self):
         return all([self.or_validate_route(i)[0] for i in range(len(self.or_co.monsters()))])
-    
+
     def or_all_routes_value(self):
         return sum([self.or_validate_route(i)[2] for i in range(len(self.or_co.monsters()))])
-    
+
     def act_or_rampage_pay(self):
         self._or_dividends(self.or_all_routes_value())
 

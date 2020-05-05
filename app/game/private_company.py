@@ -1,5 +1,5 @@
 class PrivateCompany:
-    def __init__(self, id, name, base_cost, revenue, description):
+    def __init__(self, id, name, base_cost, revenue, expires, description):
         self.id = id
         self.name = name
         self.base_cost = base_cost
@@ -8,6 +8,7 @@ class PrivateCompany:
         self.owner = None
         self.bids = []
         self.open = True
+        self.closes_on = int(expires) if expires != "" else None
 
     def bid(self, bidder, bid):
         self.bids = [i for i in self.bids if i[0] != bidder]
