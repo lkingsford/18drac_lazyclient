@@ -34,3 +34,6 @@ class PrivateCompany:
 
     def next_min_bid_amount(self, game):
         return self.bids[-1][1] + game.min_bid_increment if (len(self.bids) > 0) else self.base_cost + game.min_bid_increment
+
+    def close(self):
+        self.open = False
