@@ -135,6 +135,13 @@ def or_pass(game, game_id):
     game.act_or_pass()
     return redirect(url_for("view", game_id=game_id))
 
+@app.route('/game/<game_id>/or_buy_private/<private_id>', methods=['POST'])
+@bind_game(save=True)
+def or_buy_private(game, game_id, private_id):
+    amount = int(request.form.get('price'))
+    game.act_or_buy_private(private_id, amount)
+    return redirect(url_for("view", game_id=game_id))
+
 @app.route('/game/<game_id>/or_buy_office/<dest_id>')
 @bind_game(save=True)
 def or_buy_office(game, game_id, dest_id):

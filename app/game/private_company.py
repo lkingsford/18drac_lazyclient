@@ -9,6 +9,7 @@ class PrivateCompany:
         self.bids = []
         self.open = True
         self.closes_on = int(expires) if expires != "" else None
+        self.owned_by_company = False
 
     def bid(self, bidder, bid):
         self.bids = [i for i in self.bids if i[0] != bidder]
@@ -19,10 +20,15 @@ class PrivateCompany:
             'owner': self.owner.id if self.owner is not None else None,
             'bids': [(i[0].id, i[1]) for i in self.bids],
             'open': self.open,
+            'owned_by_company': self.owned_by_company,
         }
 
     def load_state(self, state, game):
-        self.owner = game.players[state['owner']] if state['owner'] is not None else None
+        self.owned_by_company = state['owned_by_company']
+        if self.owned_by_company:
+            self.owner = game.companies[state['owner']] if state['owner'] is not None else None
+        else:
+            self.owner = game.players[state['owner']] if state['owner'] is not None else None
         self.bids = [(next(j for j in game.players if j.id == i[0]), i[1]) for i in state['bids']]
         self.open = state['open']
 

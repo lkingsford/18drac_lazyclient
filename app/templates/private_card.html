@@ -24,6 +24,9 @@
     </table>
     {% if p.owner is not none %}
     Owned by {{p.owner.name}}
+    {% if game.or_can_buy_private(p) %}
+    <form action={{ url_for("or_buy_private", game_id=game_id, private_id=p.id) }} method='POST'><input type="submit" value="Buy associate"/> @ <input type="text" name="price" value="{{p.base_cost * 2}}" /> pts</form>
+    {% endif %}
     {% else %}
     <ul>
     {% for b in p.bids %}

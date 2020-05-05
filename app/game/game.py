@@ -314,14 +314,14 @@ class Game:
         self.companies['ll'].floated = True
         self.companies['ll'].cash = 30
         # Add nurses
-        ll.open = False
+        #ll.open = False
 
         bt = next(i for i in self.privates if i.id == 'bt')
         self.companies['bt'].president = bt.owner
         self.companies['bt'].started = True
         self.companies['bt'].floated = True
         # Add monster
-        bt.open = False
+        #bt.open = False
 
         self.increment_phase()
         self.sr_start()
@@ -494,9 +494,20 @@ class Game:
             return False
         if not private.open:
             return False
+        if self.game_turn_status in [Game.GameTurnStatus.operation_monster_limit_discard]:
+            return False
         if private.owner in self.players:
             return True
         return False
+
+    def act_or_buy_private(self, private_id, price):
+        private = next(iter(i for i in self.privates if i.id == private_id))
+        assert price > 0, "Price too low - most be greater than 1"
+        assert price <= (private.base_cost * 2), "Price too high - must be under base cost * 2"
+        assert private.owner in self.players, "Must be bought from player - no another front"
+        self.transfer_cash(price, private.owner, self.or_co)
+        private.owned_by_company = True
+        private.owner = self.or_co
 
     def _or_pay_privates(self):
         for i in self.privates:
