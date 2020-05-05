@@ -504,6 +504,7 @@ class Game:
                 self.start_or_buy_monsters()
                 return
         self.rampage_current_routes_ids = [[] for _ in self.or_co.monsters()]
+        self.rampage_editing_route_monster_idx = 0
         self.game_turn_status = Game.GameTurnStatus.operation_rampage
 
     def _or_withhold(self, amount):
@@ -533,8 +534,11 @@ class Game:
 
     def or_rampage_valid_next_node(self, destination):
         route = self.or_get_route_dests()
+        monster = self.or_co.monsters()[self.rampage_editing_route_monster_idx]
         if len(route) == 0:
             return True
+        if len(route) == monster.movement:
+            return False
         last = route[-1]
         if not last.can_pass_through(self.or_co) and len(route) > 1:
             return False
@@ -576,15 +580,32 @@ class Game:
     def or_validate_route(self, monster_idx):
         dests = [self.map.get_destination(i) for i in self.rampage_current_routes_ids[monster_idx]]
         payment = sum([i.current_value() for i in dests]) 
+        monster = self.or_co.monsters()[monster_idx]
         if len(dests) == 0:
             return True, "No routes", payment
         if not any([self.or_co.id in i.stations for i in dests]):
             return False, "No token on route", payment
-        # TODO: check for blocked
+        if len(dests) > 2:
+            if any([not i.can_pass_through(self.or_co) for i in dests[1:-1]]):
+                return False, "Route blocked", payment
+        if monster.movement == 1:
+            # TODO: check for amount of 1 movement monsters on cities
+            return True, "NOT IMPLEMENTED", payment
+        elif monster.movement == 0:
+            # Used by a special rule
+            # TODO: Implement grousfrat
+            return True, "NOT IMPLEMENTED", payment
+        elif MonsterSpecialRules.spread in monster.special_rules:
+            # TODO: check for spread
+            return True, "NOT IMPLEMENTED", payment
+        else:
+            if len(dests) > monster.movement:
+                return False, "Route too long", payment
+            if len(dests) < 2:
+                return False, "Route must connect at least 2 destinations", payment
+        # TODO: check route is continous
         # TODO: check for special rules
-        # TODO: check for length
         # TODO: check for other routes using
-        # TODO: check for amount of 1 size monsters on cities
         return True, "", payment
     
     def or_validate_all_routes(self):
