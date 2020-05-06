@@ -16,7 +16,10 @@ def bind_game(save=False):
             game_id = kwargs["game_id"]
             state = db.load_game_state(game_id)
             game = Game(state)
-            result = func(*args, **kwargs, game=game)
+            try:
+                result = func(*args, **kwargs, game=game)
+            except AssertionError as ex:
+                return redirect(url_for("view", game_id=game_id, error_message=str(ex)))
 
             if save:
                 db.log_action(game_id, func.__name__, kwargs)
@@ -39,13 +42,17 @@ def market(game, game_id):
     data = io.BytesIO(generate_market(game).encode("UTF-8"))
     return send_file(data, mimetype="image/svg+xml")
 
-@app.route('/game/<game_id>/view')
+@app.route('/game/<game_id>/view', defaults={"error_message": None} )
+@app.route('/game/<game_id>/view/<error_message>')
 @bind_game()
-def view(game, game_id):
+def view(game, game_id, error_message=None):
     # Add things to help game separate logic
     for i in game.companies:
         game.companies[i].token_img = url_for('static_assets', path=f'tokens/{i}.svg')
-    return render_template("game_view.html", game_id=game_id, game=game)
+    return render_template("game_view.html",
+                           game_id=game_id,
+                           game=game,
+                           error_message=error_message)
 
 @app.route('/create')
 def create_form():
