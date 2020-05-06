@@ -704,14 +704,30 @@ class Game:
 
     def or_discarded_monsters(self):
         all_relevant = [i for i in self.monsters if i.in_market]
-        unique_ids = {i.id for i in all_relevant}
+        unique_ids = {(i.id, i.owner) for i in all_relevant}
         monsters = [(next(iter([i for i in all_relevant if i.id == _id])), len([i for i in all_relevant if i.id == _id])) for _id in unique_ids]
+        return monsters
+
+    def all_owned_monsters(self):
+        all_relevant = [i for i in self.monsters if i.owner is not None]
+        unique_ids = {(i.id, i.owner) for i in all_relevant}
+        monsters = [(next(iter([i for i in all_relevant if i.id == _id and i.owner == _owner])), len([i for i in all_relevant if i.id == _id])) for _id, _owner in unique_ids]
+        return monsters
+
+    def or_other_co_monsters(self):
+        all_relevant = [i for i in self.monsters if i.owner is not None and i.owner is not self.or_co]
+        unique_ids = {(i.id, i.owner) for i in all_relevant}
+        monsters = [(next(iter([i for i in all_relevant if i.id == _id and i.owner == _owner])), len([i for i in all_relevant if i.id == _id])) for _id, _owner in unique_ids]
         return monsters
 
     def or_can_buy_monster(self, monster):
         # todo: check monster limit
         if self.or_co and self.or_co.at_monster_limit():
             return False
+        if self.or_co and \
+            monster.owner != None and \
+            monster.owner != self.or_co:
+            return True
         phases_available = []
         if self.monster_sales_for_phase and (self.phase_sales_remaining == 0):
             phases_available.append(self.phase + 1)
@@ -739,12 +755,24 @@ class Game:
         if self.game_turn_status == Game.GameTurnStatus.operation_buy_monsters:
             if not self._or_can_buy_any_monster():
                 self.or_next_co()
-    
+
+    def act_or_buy_other_co_monster(self, monster_id, owner_id, price):
+        monster = next(iter([i for i in self.monsters if i.id == monster_id and i.owner and i.owner.id == owner_id]))
+        assert self.or_can_buy_monster(monster)
+        assert monster
+        assert price > 0, "Price must be > 0"
+        monster.in_market = False
+        self.transfer_cash(price, monster.owner, self.or_co)
+        monster.owner = self.or_co
+        if self.game_turn_status == Game.GameTurnStatus.operation_buy_monsters:
+            if not self._or_can_buy_any_monster():
+                self.or_next_co()
+
     def start_or_force_discard(self):
         self.real_or_co = self.or_co
         self.game_turn_status = Game.GameTurnStatus.operation_monster_limit_discard
         self.or_next_force_discard()
-    
+
     def or_next_force_discard(self):
         all_cos = self.market.all_company_order(self)
         for co in all_cos:
@@ -753,7 +781,7 @@ class Game:
                 return
         self.or_co = self.real_or_co
         self.game_turn_status = Game.GameTurnStatus.operation_buy_monsters
-    
+
     def act_or_discard_monster(self, monster_id):
         monster = next(iter([i for i in self.or_co.monsters() if i.id == monster_id]))
         monster.owner = None

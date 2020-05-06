@@ -161,6 +161,14 @@ def or_buy_monster(game, game_id, monster_id, in_market):
     game.act_or_buy_monster(monster_id, in_market)
     return redirect(url_for("view", game_id=game_id))
 
+
+@app.route('/game/<game_id>/or_buy_monster/<monster_id>/<owner_id>', methods=['POST'])
+@bind_game(save=True)
+def or_buy_other_co_monster(game, game_id, monster_id, owner_id):
+    price = int(request.form.get('price'))
+    game.act_or_buy_other_co_monster(monster_id, owner_id, price)
+    return redirect(url_for("view", game_id=game_id))
+
 @app.route('/game/<game_id>/or_discard_monster/<monster_id>')
 @bind_game(save=True)
 def or_discard_monster(game, game_id, monster_id):

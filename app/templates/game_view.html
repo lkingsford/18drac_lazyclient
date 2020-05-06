@@ -122,6 +122,21 @@
     {% include "monster_card.html" %}
   {% endfor %}
   </div>
+  {% if game.or_co != None %}
+    <H2> Other companies </H2>
+    <div class="company_row">
+    {% for monster in game.or_other_co_monsters() %}
+      {% include "monster_card.html" %}
+    {% endfor %}
+    </div>
+  {% else %}
+    <H2> All owned monsters </H2>
+    <div class="company_row">
+    {% for monster in game.or_available_monsters() %}
+      {% include "monster_card.html" %}
+    {% endfor %}
+    </div>
+  {% endif %}
   <H2> Future Monsters </H2>
   <div class="company_row">
   {% for monster in game.or_future_monsters() %}
