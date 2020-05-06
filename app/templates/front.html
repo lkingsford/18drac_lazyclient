@@ -25,6 +25,12 @@
                 <td> Monsters: </td>
                 <td colspan=4> {{ game.companies[c].monster_display() }}</td>
             </tr>
+            {% if game.companies[c].floated %}
+            <tr>
+                <td> Cash: </td>
+                <td colspan=4> {{ game.companies[c].cash }}</td>
+            </tr>
+            {% endif %}
             {% if game.companies[c].public %}
             <td> Stock holdings: </td>
             <td colspan=4>

@@ -12,18 +12,30 @@
     <div>
     Costs: {{monster[0].cost}}
     </div>
+    {% if monster[0].owner != None %}
+    <div>
+      Owned by {{monster[0].owner.name}}
+    </div>
+    {% endif %}
     <ul>
     {% for rule in monster[0].get_special_rules() %}
     <li> {{rule}} </li>
     {% endfor %}
     </ul>
     {% if monster[0].get_trades() %}
-    Can be traded for: {{ monster[0].get_trades() }} when available
+      Can be traded for: {{ monster[0].get_trades() }} when available
     {% endif %}
     {% if game.or_can_buy_monster(monster[0]) %}
-    <form action={{ url_for("or_buy_monster", monster_id=monster[0].id, game_id=game_id, in_market=in_market) }}>
+    {% if monster[0].owner == None %}
+    <form action={{ url_for("or_buy_monster", monster_id=monster[0].id, game_id=game_id, in_market=in_market) }} >
       <input type="submit" value="Buy Monster"/>
     </form>
+    {% else %}
+    <form action={{ url_for("or_buy_other_co_monster", monster_id=monster[0].id, game_id=game_id, owner_id=monster[0].owner.id) }} method='POST'>
+      <input type="submit" value="Buy Monster @"/>
+      <input type="text" name="price" value="1" />
+    </form>
+    {% endif %}
     {% endif %}
 
     {% if game.game_turn_status.name == "operation_monster_limit_discard" and monster[0].owner == game.or_co %}
