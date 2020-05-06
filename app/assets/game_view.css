@@ -87,3 +87,8 @@
   .active_monster{
     font-weight: bolder;
   }
+
+  .error_message {
+    color: red;
+    font-size: 14pt;
+  }

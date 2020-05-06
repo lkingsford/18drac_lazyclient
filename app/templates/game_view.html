@@ -8,6 +8,11 @@
 </nav>
 
 <section class="content">
+{% if error_message %}
+<div class="error_message">
+{{error_message}}
+</div>
+{% endif %}
 
 {% if game.sr_show_pass() %}
 <form action={{ url_for("sr_pass", game_id=game_id) }} method='POST'>
